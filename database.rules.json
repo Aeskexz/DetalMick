@@ -1,0 +1,96 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+    "roles": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": false
+      }
+    },
+    "usuarios": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['nombre'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "telefono": {
+          ".validate": "newData.isString() && newData.val().length <= 25"
+        },
+        "direccion": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "servicios": {
+      ".read": true,
+      ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+    },
+    "clinica": {
+      ".read": true,
+      ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+    },
+    "solicitudesCitas": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        "$solicitudId": {
+          ".write": "auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).exists() && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['servicioId', 'fechaSolicitada', 'creadoEn'])",
+          "servicioId": {
+            ".validate": "newData.isString() && root.child('servicios').child(newData.val()).exists()"
+          },
+          "fechaSolicitada": {
+            ".validate": "newData.isNumber() && newData.val() > now"
+          },
+          "creadoEn": {
+            ".validate": "newData.isNumber() && newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "citas": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+      }
+    },
+    "tratamientos": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+      }
+    },
+    "pagos": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+      }
+    },
+    "recordatorios": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+        "$recordatorioId": {
+          "leido": {
+            ".write": "auth != null && auth.uid === $uid && data.parent().exists() && newData.exists()",
+            ".validate": "newData.isBoolean()"
+          }
+        }
+      }
+    }
+  }
+}

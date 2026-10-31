@@ -1,0 +1,15 @@
+✔ anonymous access is limited to public clinic and services (278.088ms)
+✔ patient can read and update their profile, never another patient (43.6716ms)
+✔ schema rejects unknown privileges, invalid types, missing names and deletion (85.6343ms)
+✔ patient cannot change payments, clinical history, confirmed appointments or public catalog (35.41ms)
+✔ authorized staff can manage clinical records and read profiles (22.8158ms)
+✔ patient marks only their existing reminders as read (40.8397ms)
+✔ patient requests require their profile, a real service, future date and server timestamp (41.0045ms)
+ℹ tests 7
+ℹ suites 0
+ℹ pass 7
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 716.1908

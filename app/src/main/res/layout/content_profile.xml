@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Title" android:text="@string/profile_title" />
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="@string/profile_description" android:layout_marginTop="8dp" android:layout_marginBottom="24dp" />
+  <TextView android:id="@+id/email" android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:layout_marginBottom="16dp" />
+  <com.google.android.material.textfield.TextInputLayout android:id="@+id/nameLayout" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/name" android:layout_marginBottom="12dp">
+    <com.google.android.material.textfield.TextInputEditText android:id="@+id/name" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPersonName|textCapWords" android:textSize="18sp" android:autofillHints="personName" android:maxLength="120" android:singleLine="true" />
+  </com.google.android.material.textfield.TextInputLayout>
+  <com.google.android.material.textfield.TextInputLayout android:id="@+id/phoneLayout" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/phone" android:layout_marginBottom="12dp">
+    <com.google.android.material.textfield.TextInputEditText android:id="@+id/phone" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="phone" android:textSize="18sp" android:autofillHints="phone" android:maxLength="25" android:singleLine="true" />
+  </com.google.android.material.textfield.TextInputLayout>
+  <com.google.android.material.textfield.TextInputLayout android:id="@+id/addressLayout" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="@string/address" android:layout_marginBottom="12dp">
+    <com.google.android.material.textfield.TextInputEditText android:id="@+id/address" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="textPostalAddress|textMultiLine|textCapSentences" android:textSize="18sp" android:autofillHints="postalAddress" android:maxLength="300" android:minLines="2" android:maxLines="5" />
+  </com.google.android.material.textfield.TextInputLayout>
+  <com.google.android.material.button.MaterialButton android:id="@+id/save" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/save" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/back" android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Widget.Material3.Button.TextButton" android:minHeight="56dp" android:text="@string/back_home" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/logout" android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Widget.Material3.Button.TextButton" android:minHeight="56dp" android:text="@string/logout" />
+</LinearLayout>

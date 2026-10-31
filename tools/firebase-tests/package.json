@@ -1,0 +1,11 @@
+{
+  "name": "detalmick-local-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test rules.test.mjs"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  }
+}
