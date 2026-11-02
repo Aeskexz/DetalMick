@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="12dp" android:background="@drawable/panel_background" android:layout_marginBottom="12dp">
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2" android:layout_marginBottom="8dp">
+    <TextView android:id="@+id/pago_monto" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" style="@style/Text.DetalMick.Body" android:textStyle="bold" android:textSize="16sp" android:textColor="@color/primary" />
+    <TextView android:id="@+id/pago_estado" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" style="@style/Text.DetalMick.Body" android:textSize="13sp" android:padding="4dp" android:gravity="end" />
+  </LinearLayout>
+  <TextView android:id="@+id/pago_saldo" android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:textSize="13sp" android:layout_marginBottom="4dp" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:weightSum="2">
+    <TextView android:id="@+id/pago_fecha_limite" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" style="@style/Text.DetalMick.Body" android:textSize="13sp" />
+    <Button android:id="@+id/btn_actualizar_pago_item" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Actualizar" android:textSize="12sp" android:paddingHorizontal="8dp" android:paddingVertical="4dp" android:visibility="gone" />
+  </LinearLayout>
+</LinearLayout>

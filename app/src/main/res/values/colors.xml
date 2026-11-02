@@ -9,4 +9,5 @@
   <color name="soft">#DCEFEA</color>
   <color name="error">#A32224</color>
   <color name="error_surface">#FFEDEC</color>
+  <color name="white">#FFFFFF</color>
 </resources>

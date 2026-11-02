@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+  <TextView android:id="@+id/empty_message" android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="No hay tratamientos registrados" android:textSize="14sp" android:gravity="center" android:padding="32dp" android:visibility="gone" />
+  <LinearLayout android:id="@+id/tratamientos_list" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+</LinearLayout>
