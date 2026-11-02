@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Title" android:text="Servicios" android:textSize="20sp" android:layout_marginBottom="16dp" />
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:background="@drawable/panel_background" android:layout_marginBottom="12dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Limpieza Dental" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Limpieza profesional y pulido" android:textSize="14sp" android:layout_marginTop="4dp" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:background="@drawable/panel_background" android:layout_marginBottom="12dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Ortodoncia" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Corrección de la alineación dental" android:textSize="14sp" android:layout_marginTop="4dp" />
+  </LinearLayout>
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:background="@drawable/panel_background">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Whitening" android:textStyle="bold" />
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Blanqueamiento dental profesional" android:textSize="14sp" android:layout_marginTop="4dp" />
+  </LinearLayout>
+</LinearLayout>

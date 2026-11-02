@@ -46,4 +46,9 @@
   <string name="keep_editing">Seguir editando</string>
   <string name="discard">Descartar cambios</string>
   <string name="logout_unsaved_question">Hay cambios sin guardar en tu perfil. Si cierras sesión, se descartarán. ¿Quieres continuar?</string>
+  <string name="nav_inicio">Inicio</string>
+  <string name="nav_agendar">Agendar</string>
+  <string name="nav_mis_citas">Mis Citas</string>
+  <string name="nav_servicios">Servicios</string>
+  <string name="nav_historial">Historial</string>
 </resources>

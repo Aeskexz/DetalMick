@@ -31,6 +31,7 @@ class MainActivity : AppCompatActivity() {
     private var authForm: ContentAuthBinding? = null
     private var home: ContentHomeBinding? = null
     private var profileForm: ContentProfileBinding? = null
+    private var currentDashboardView: View? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,6 +45,19 @@ class MainActivity : AppCompatActivity() {
         }
         model = ViewModelProvider(this)[AccountViewModel::class.java]
         model.state.observe(this, ::render)
+
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                R.id.nav_inicio -> showDashboardContent(R.layout.content_dashboard_inicio)
+                R.id.nav_agendar -> showDashboardContent(R.layout.content_dashboard_agendar)
+                R.id.nav_mis_citas -> showDashboardContent(R.layout.content_dashboard_mis_citas)
+                R.id.nav_servicios -> showDashboardContent(R.layout.content_dashboard_servicios)
+                R.id.nav_historial -> showDashboardContent(R.layout.content_dashboard_historial)
+                else -> false
+            }
+            true
+        }
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 val state = model.state.value ?: return
@@ -55,6 +69,13 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         })
+    }
+
+    private fun showDashboardContent(layoutId: Int): Boolean {
+        if (currentDashboardView?.id == layoutId) return false
+        binding.content.removeAllViews()
+        currentDashboardView = View.inflate(this, layoutId, binding.content)
+        return true
     }
 
     private fun render(state: AccountState) {
@@ -77,10 +98,15 @@ class MainActivity : AppCompatActivity() {
             authForm?.password?.text?.clear()
             authForm?.confirmation?.text?.clear()
             binding.content.removeAllViews()
-            authForm = null; home = null; profileForm = null
+            authForm = null; home = null; profileForm = null; currentDashboardView = null
+            binding.bottomNavigation.isVisible = state.screen == Screen.HOME
             when (state.screen) {
                 Screen.LOGIN, Screen.REGISTER, Screen.RESET -> showAuth(state.screen)
-                Screen.HOME -> showHome()
+                Screen.HOME -> {
+                    showHome()
+                    binding.bottomNavigation.selectedItemId = R.id.nav_inicio
+                    showDashboardContent(R.layout.content_dashboard_inicio)
+                }
                 Screen.PROFILE -> showProfile(state)
             }
             renderedScreen = state.screen
@@ -181,3 +207,4 @@ class MainActivity : AppCompatActivity() {
         if (view is ViewGroup) for (index in 0 until view.childCount) setEnabled(view.getChildAt(index), enabled)
     }
 }
+

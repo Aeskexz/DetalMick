@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:id="@+id/main" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/main" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:background="@color/background">
   <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:paddingHorizontal="24dp" android:paddingTop="20dp" android:paddingBottom="12dp">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Title" android:text="@string/app_name" android:textColor="@color/primary" android:textSize="26sp" />
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="@string/tagline" android:textSize="14sp" />
@@ -15,4 +15,5 @@
       <FrameLayout android:id="@+id/content" android:layout_width="match_parent" android:layout_height="wrap_content" />
     </LinearLayout>
   </ScrollView>
+  <com.google.android.material.bottomnavigation.BottomNavigationView android:id="@+id/bottomNavigation" android:layout_width="match_parent" android:layout_height="wrap_content" android:background="@color/primary" app:menu="@menu/bottom_navigation_menu" app:itemTextColor="@color/white" app:itemIconTint="@color/white" />
 </LinearLayout>
