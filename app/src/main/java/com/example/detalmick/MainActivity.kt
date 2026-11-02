@@ -94,7 +94,7 @@ class MainActivity : AppCompatActivity() {
         home?.let {
             val name = state.profile?.nombre.orEmpty()
             it.greeting.text = if (name.isBlank()) getString(R.string.home_title)
-                else getString(R.string.greeting, name.substringBefore(' '))
+            else getString(R.string.greeting, name.substringBefore(' '))
             it.fullName.text = name.ifBlank { "Tu perfil" }
             it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario: ${state.email.substringBefore('@')}" else state.email
             it.role.setText(if (state.staff) R.string.staff_account else R.string.patient_account)
@@ -103,8 +103,11 @@ class MainActivity : AppCompatActivity() {
             it.logout.isEnabled = true
             it.treatments.isEnabled = !state.busy && (state.profileSaved || state.staff)
             it.payments.isEnabled = !state.busy && (state.profileSaved || state.staff)
+            it.citas.isEnabled = !state.busy && (state.profileSaved || state.staff)
+
             it.treatments.text = if (state.staff) "Gestionar tratamientos" else "Mis tratamientos"
             it.payments.text = if (state.staff) "Gestionar pagos" else "Mis pagos"
+            it.citas.text = if (state.staff) "Gestionar agenda de citas" else "Mis citas y agendar"
         }
         profileForm?.let { it.logout.isEnabled = true; it.back.isVisible = state.profileSaved }
     }
@@ -125,11 +128,11 @@ class MainActivity : AppCompatActivity() {
         form.description.setText(when (screen) { Screen.REGISTER -> R.string.register_description; Screen.RESET -> R.string.reset_description; else -> R.string.login_description })
         if (dentist && screen == Screen.LOGIN) {
             form.title.text = "Acceso de dentistas"
-            form.description.text = "Entra con tu usuario o correo autorizado para gestionar tratamientos y pagos."
+            form.description.text = "Entra con tu usuario o correo autorizado para gestionar tratamientos, pagos y citas."
             form.emailLayout.hint = "Usuario o correo de dentista"
             form.email.inputType = android.text.InputType.TYPE_CLASS_TEXT
         } else if (screen == Screen.LOGIN) {
-            form.description.text = "Acceso exclusivo para pacientes. Consulta tus tratamientos, pagos y datos personales."
+            form.description.text = "Acceso exclusivo para pacientes. Consulta tus tratamientos, pagos y citas."
         }
         form.nameLayout.isVisible = register
         form.confirmationLayout.isVisible = register
@@ -159,7 +162,18 @@ class MainActivity : AppCompatActivity() {
             it.logout.setOnClickListener { confirmLogout() }
             it.treatments.setOnClickListener { openClinical("tratamientos") }
             it.payments.setOnClickListener { openClinical("pagos") }
+            it.citas.setOnClickListener { openCitas() }
         }
+    }
+
+    private fun openCitas() {
+        val state = model.state.value ?: return
+        if (state.busy || (!state.profileSaved && !state.staff)) return
+        startActivity(
+            Intent(this, CitasActivity::class.java)
+                .putExtra("staff", state.staff)
+                .putExtra("nombre", state.profile?.nombre.orEmpty())
+        )
     }
 
     private fun openClinical(tab: String) {
@@ -174,7 +188,7 @@ class MainActivity : AppCompatActivity() {
             it.phone.setText(state.profile?.telefono.orEmpty())
             it.address.setText(state.profile?.direccion.orEmpty())
             it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario de acceso: ${state.email.substringBefore('@')}"
-                else getString(R.string.account_email, state.email)
+            else getString(R.string.account_email, state.email)
             it.save.setOnClickListener { _ -> model.save(it.name.text.toString(), it.phone.text.toString(), it.address.text.toString()) }
             it.back.setOnClickListener { leaveProfile() }
             it.logout.setOnClickListener { confirmLogout() }
@@ -197,8 +211,8 @@ class MainActivity : AppCompatActivity() {
         val form = profileForm ?: return false
         val saved = model.state.value?.profile ?: return false
         return form.name.text.toString().trim() != saved.nombre ||
-            form.phone.text.toString().trim() != saved.telefono ||
-            form.address.text.toString().trim() != saved.direccion
+                form.phone.text.toString().trim() != saved.telefono ||
+                form.address.text.toString().trim() != saved.direccion
     }
 
     private fun leaveProfile() {

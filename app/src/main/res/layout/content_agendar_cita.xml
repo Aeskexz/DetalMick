@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="16dp">
+
+    <TextView android:id="@+id/tvPaso" style="@style/Text.DetalMick.Title" android:textSize="20sp"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" />
+
+    <LinearLayout android:id="@+id/paso1" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <TextView style="@style/Text.DetalMick.Body" android:textStyle="bold" android:text="Servicio" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Spinner android:id="@+id/spinnerServicios" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
+        <TextView style="@style/Text.DetalMick.Body" android:textStyle="bold" android:text="Dentista" android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <Spinner android:id="@+id/spinnerDentistas" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
+        <TextView android:id="@+id/tvCatalogoVacio" style="@style/Text.DetalMick.Body" android:visibility="gone"
+            android:text="Aún no hay servicios o dentistas disponibles." android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnReintentarCatalogo" style="@style/Widget.Material3.Button.TextButton"
+            android:visibility="gone" android:text="Reintentar" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSiguiente1" android:text="Siguiente"
+            android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/paso2" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnElegirFecha" android:text="Elegir fecha"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/tvSinFecha" style="@style/Text.DetalMick.Body" android:text="Elige una fecha para ver los horarios."
+            android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.chip.ChipGroup android:id="@+id/chipsHorarios" app:singleSelection="true" app:selectionRequired="true"
+            android:layout_marginTop="12dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnSiguiente2" android:text="Siguiente"
+            android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnAtras2" style="@style/Widget.Material3.Button.TextButton"
+            android:text="Atrás" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <LinearLayout android:id="@+id/paso3" android:visibility="gone" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+        <TextView android:id="@+id/tvResumen" style="@style/Text.DetalMick.Body" android:padding="16dp" android:background="@drawable/panel_background"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnConfirmarCita"
+            android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnAtras3" style="@style/Widget.Material3.Button.TextButton"
+            android:text="Atrás" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+</LinearLayout>

@@ -16,6 +16,8 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DetalMick">
+        <activity android:name=".CitasActivity" android:exported="false"
+            android:screenOrientation="portrait" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ClinicalActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity android:name=".ClinicalEditorActivity" android:exported="false" android:windowSoftInputMode="adjustResize" />
         <activity

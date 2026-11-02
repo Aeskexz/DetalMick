@@ -36,33 +36,37 @@
       ".read": true,
       ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
     },
-    "solicitudesCitas": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+    "citas": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        "$solicitudId": {
-          ".write": "auth != null && auth.uid === $uid && root.child('usuarios').child(auth.uid).exists() && !data.exists() && newData.exists()",
-          ".validate": "newData.hasChildren(['servicioId', 'fechaSolicitada', 'creadoEn'])",
-          "servicioId": {
-            ".validate": "newData.isString() && root.child('servicios').child(newData.val()).exists()"
-          },
-          "fechaSolicitada": {
-            ".validate": "newData.isNumber() && newData.val() > now"
-          },
-          "creadoEn": {
-            ".validate": "newData.isNumber() && newData.val() === now"
-          },
-          "$other": {
-            ".validate": false
-          }
+        ".write": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
+        "$id": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
+          ".validate": "!newData.exists() || newData.hasChildren(['uid','dentistaId','servicioId','fecha','horario','estado'])",
+          "uid": { ".validate": "newData.val() === $uid" },
+          "id": { ".validate": "newData.isString()" },
+          "fecha": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/)" },
+          "horario": { ".validate": "newData.isString() && newData.val().matches(/^[0-2][0-9]:00 - [0-2][0-9]:00$/)" },
+          "estado": { ".validate": "newData.val() === 'confirmada' || newData.val() === 'reprogramada' || newData.val() === 'cancelada'" },
+          "pacienteNombre": { ".validate": "newData.isString() && newData.val().length <= 120" },
+          "dentistaId": { ".validate": "newData.isString()" },
+          "dentistaNombre": { ".validate": "newData.isString()" },
+          "servicioId": { ".validate": "newData.isString()" },
+          "servicioNombre": { ".validate": "newData.isString()" },
+          "$other": { ".validate": false }
         }
       }
     },
-    "citas": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
-      "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+    "agenda": {
+      "$dentistaId": {
+        "$fecha": {
+          ".read": "auth != null",
+          "$hora": {
+            ".validate": "newData.isString()",
+            ".write": "auth != null && ((!data.exists() && newData.isString() && (newData.val() === auth.uid || root.child('roles').child(auth.uid).child('personal').val() === true)) || (data.exists() && !newData.exists() && (data.val() === auth.uid || root.child('roles').child(auth.uid).child('personal').val() === true)))"
+          }
+        }
       }
     },
     "tratamientos": {

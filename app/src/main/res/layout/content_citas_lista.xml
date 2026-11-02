@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="16dp">
+
+    <TextView android:id="@+id/tvTitulo" style="@style/Text.DetalMick.Title" android:textSize="20sp"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="16dp" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical"
+        android:padding="16dp" android:background="@drawable/panel_background">
+        <TextView style="@style/Text.DetalMick.Body" android:text="Próxima cita" android:textStyle="bold"
+            android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@+id/tvProximaCita" style="@style/Text.DetalMick.Body" android:textSize="14sp"
+            android:layout_marginTop="8dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnAgendarNuevaCita" android:text="Agendar nueva cita"
+        android:layout_marginTop="16dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+    <LinearLayout android:id="@+id/panelError" android:visibility="gone" android:orientation="vertical" android:padding="16dp"
+        android:background="@drawable/panel_background" android:layout_marginTop="16dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content">
+        <TextView android:id="@+id/tvError" style="@style/Text.DetalMick.Body" android:layout_width="match_parent" android:layout_height="wrap_content" />
+        <com.google.android.material.button.MaterialButton android:id="@+id/btnReintentar" style="@style/Widget.Material3.Button.TextButton"
+            android:text="Reintentar" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/tvEstadoVacio" style="@style/Text.DetalMick.Body" android:visibility="gone"
+        android:text="Todavía no hay citas para mostrar." android:layout_marginTop="16dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+    <LinearLayout android:id="@+id/listaCitas" android:orientation="vertical" android:layout_marginTop="16dp"
+        android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnVolver" style="@style/Widget.Material3.Button.TextButton"
+        android:text="Volver al inicio" android:layout_width="match_parent" android:layout_height="wrap_content" />
+</LinearLayout>
