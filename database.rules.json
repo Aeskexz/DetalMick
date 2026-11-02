@@ -12,7 +12,7 @@
       ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && newData.exists()",
+        ".write": "auth != null && auth.uid === $uid && root.child('roles').child(auth.uid).child('personal').val() !== true && newData.exists()",
         ".validate": "newData.hasChildren(['nombre'])",
         "nombre": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -69,14 +69,96 @@
       ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+        ".indexOn": [
+          "fecha",
+          "estado"
+        ],
+        "$id": {
+          ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && newData.exists() && root.child('usuarios').child($uid).exists()",
+          ".validate": "newData.hasChildren(['titulo','descripcion','estado','fecha','creadoEn','actualizadoEn','registradoPor'])",
+          "titulo": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "descripcion": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 2000"
+          },
+          "estado": {
+            ".validate": "newData.val() === 'programado' || newData.val() === 'realizado'"
+          },
+          "fecha": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/)"
+          },
+          "creadoEn": {
+            ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === now) || newData.val() === data.val())"
+          },
+          "actualizadoEn": {
+            ".validate": "newData.isNumber() && newData.val() <= now && (!data.exists() || newData.val() >= data.val())"
+          },
+          "registradoPor": {
+            ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val())"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     },
     "pagos": {
       ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+        ".indexOn": [
+          "fechaLimite",
+          "estado"
+        ],
+        "$id": {
+          ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && newData.exists() && root.child('usuarios').child($uid).exists()",
+          ".validate": "newData.hasChildren(['concepto','totalCentavos','abonadoCentavos','estado','fechaLimite','creadoEn','actualizadoEn','registradoPor']) && newData.child('abonadoCentavos').val() <= newData.child('totalCentavos').val() && (newData.child('estado').val() === 'pagado' ? newData.child('abonadoCentavos').val() === newData.child('totalCentavos').val() : newData.child('abonadoCentavos').val() < newData.child('totalCentavos').val()) && (newData.child('abonadoCentavos').val() === 0 || newData.child('abonos').exists())",
+          "concepto": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && (!data.exists() || newData.val() === data.val())"
+          },
+          "totalCentavos": {
+            ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 999999999 && (!data.exists() || newData.val() === data.val())"
+          },
+          "abonadoCentavos": {
+            ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 999999999 && (!data.exists() ? newData.val() === 0 : newData.val() >= data.val())"
+          },
+          "estado": {
+            ".validate": "newData.val() === 'pendiente' || newData.val() === 'pagado'"
+          },
+          "fechaLimite": {
+            ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/) && (!data.exists() || newData.val() === data.val())"
+          },
+          "creadoEn": {
+            ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === now) || newData.val() === data.val())"
+          },
+          "actualizadoEn": {
+            ".validate": "newData.isNumber() && newData.val() <= now && (!data.exists() || newData.val() >= data.val())"
+          },
+          "registradoPor": {
+            ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val())"
+          },
+          "abonos": {
+            "$id": {
+              ".validate": "newData.hasChildren(['montoCentavos','creadoEn','registradoPor'])",
+              "montoCentavos": {
+                ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 1 && newData.val() <= 999999999 && (!data.exists() || newData.val() === data.val())"
+              },
+              "creadoEn": {
+                ".validate": "newData.isNumber() && ((!data.exists() && newData.val() === now) || newData.val() === data.val())"
+              },
+              "registradoPor": {
+                ".validate": "newData.isString() && ((!data.exists() && newData.val() === auth.uid) || newData.val() === data.val())"
+              },
+              "$other": {
+                ".validate": false
+              }
+            }
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
       }
     },
     "recordatorios": {
@@ -89,6 +171,26 @@
             ".write": "auth != null && auth.uid === $uid && data.parent().exists() && newData.exists()",
             ".validate": "newData.isBoolean()"
           }
+        }
+      }
+    },
+    "dentistas": {
+      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && auth.uid === $uid && newData.exists()",
+        ".validate": "newData.hasChildren(['nombre'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "telefono": {
+          ".validate": "newData.isString() && newData.val().length <= 25"
+        },
+        "direccion": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

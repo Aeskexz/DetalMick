@@ -19,11 +19,11 @@ class AccountRepository {
 
     fun reset(email: String): Task<Void> = auth.sendPasswordResetEmail(email)
 
-    fun profile(uid: String): Task<DataSnapshot> = Tasks.withTimeout(
-        database.getReference("usuarios").child(uid).get(), 15, TimeUnit.SECONDS)
+    fun profile(uid: String, staff: Boolean = false): Task<DataSnapshot> = Tasks.withTimeout(
+        database.getReference(if (staff) "dentistas" else "usuarios").child(uid).get(), 15, TimeUnit.SECONDS)
 
-    fun save(uid: String, profile: PatientProfile): Task<Void> = Tasks.withTimeout(
-        database.getReference("usuarios").child(uid).setValue(profile), 15, TimeUnit.SECONDS)
+    fun save(uid: String, profile: PatientProfile, staff: Boolean = false): Task<Void> = Tasks.withTimeout(
+        database.getReference(if (staff) "dentistas" else "usuarios").child(uid).setValue(profile), 15, TimeUnit.SECONDS)
 
     fun role(uid: String): Task<DataSnapshot> = Tasks.withTimeout(
         database.getReference("roles").child(uid).child("personal").get(), 15, TimeUnit.SECONDS)

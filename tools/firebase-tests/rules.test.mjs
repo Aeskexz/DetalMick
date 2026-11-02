@@ -31,7 +31,8 @@ before(async () => {
     [`roles/${staff.localId}/personal`]: true,
     [`usuarios/${alice.localId}`]: { nombre: 'Ana Paciente', telefono: '', direccion: '' },
     [`usuarios/${bob.localId}`]: { nombre: 'Otro Paciente' },
-    [`pagos/${alice.localId}/p1`]: { monto: 50, estado: 'pendiente' },
+    [`pagos/${alice.localId}/p1`]: { concepto: 'Limpieza', totalCentavos: 5000, abonadoCentavos: 0,
+      fechaLimite: '2026-12-15', estado: 'pendiente', creadoEn: Date.now(), actualizadoEn: Date.now(), registradoPor: staff.localId },
     [`recordatorios/${alice.localId}/r1`]: { mensaje: 'Tu cita', leido: false },
     'servicios/limpieza': { nombre: 'Limpieza dental' },
     'clinica/nombre': 'Clínica de prueba'
@@ -67,8 +68,48 @@ test('patient cannot change payments, clinical history, confirmed appointments o
 });
 test('authorized staff can manage clinical records and read profiles', async () => {
   await allowed(await request('usuarios', 'GET', undefined, staff.idToken));
-  await allowed(await request(`pagos/${alice.localId}/p1`, 'PUT', { monto: 50, estado: 'pagado' }, staff.idToken));
+  await allowed(await request(`pagos/${alice.localId}/p1`, 'PATCH', { abonadoCentavos: 5000, estado: 'pagado',
+    actualizadoEn: { '.sv': 'timestamp' }, 'abonos/a1': { montoCentavos: 5000, creadoEn: { '.sv': 'timestamp' }, registradoPor: staff.localId } }, staff.idToken));
   await allowed(await request(`citas/${alice.localId}/c1`, 'PUT', { estado: 'confirmada' }, staff.idToken));
+});
+
+test('dentist profiles are separate and patients cannot impersonate dentists', async () => {
+  await allowed(await request(`dentistas/${staff.localId}`, 'PUT', { nombre: 'Dentista de prueba' }, staff.idToken));
+  await denied(await request(`dentistas/${alice.localId}`, 'PUT', { nombre: 'Falso dentista' }, alice.idToken));
+  await denied(await request(`dentistas/${staff.localId}`, 'GET', undefined, alice.idToken));
+  await denied(await request(`usuarios/${staff.localId}`, 'PUT', { nombre: 'Perfil equivocado' }, staff.idToken));
+});
+
+test('treatments validate state, date, patient and audit fields', async () => {
+  const value = { titulo: 'Limpieza dental', descripcion: 'Retirar la placa de los dientes.', estado: 'programado',
+    fecha: '2026-12-01', creadoEn: { '.sv': 'timestamp' }, actualizadoEn: { '.sv': 'timestamp' }, registradoPor: staff.localId };
+  const path = `tratamientos/${alice.localId}/t1`;
+  await allowed(await request(path, 'PUT', value, staff.idToken));
+  await allowed(await request(path, 'GET', undefined, alice.idToken));
+  await denied(await request(path, 'GET', undefined, bob.idToken));
+  await allowed(await request(path, 'PATCH', { estado: 'realizado', actualizadoEn: { '.sv': 'timestamp' } }, staff.idToken));
+  await denied(await request(path, 'PATCH', { estado: 'falso' }, staff.idToken));
+  await denied(await request(path, 'PATCH', { fecha: 'sin fecha' }, staff.idToken));
+  await denied(await request(path, 'PATCH', { registradoPor: alice.localId }, staff.idToken));
+  await denied(await request(path, 'DELETE', undefined, staff.idToken));
+  await denied(await request('tratamientos/inexistente/t1', 'PUT', value, staff.idToken));
+});
+
+test('charges and partial payments reject invalid amounts, overpayment and contradictory states', async () => {
+  const path = `pagos/${alice.localId}/charge`;
+  const charge = { concepto: 'Tratamiento de prueba', totalCentavos: 10000, abonadoCentavos: 0, estado: 'pendiente',
+    fechaLimite: '2026-12-20', creadoEn: { '.sv': 'timestamp' }, actualizadoEn: { '.sv': 'timestamp' }, registradoPor: staff.localId };
+  await allowed(await request(path, 'PUT', charge, staff.idToken));
+  await denied(await request(path, 'PATCH', { totalCentavos: 20000 }, staff.idToken));
+  await denied(await request(path, 'PATCH', { abonadoCentavos: -1 }, staff.idToken));
+  await denied(await request(path, 'PATCH', { abonadoCentavos: 10001 }, staff.idToken));
+  await denied(await request(path, 'PATCH', { estado: 'pagado' }, staff.idToken));
+  const receipt = { montoCentavos: 2500, creadoEn: { '.sv': 'timestamp' }, registradoPor: staff.localId };
+  await allowed(await request(path, 'PATCH', { abonadoCentavos: 2500, 'abonos/partial': receipt, actualizadoEn: { '.sv': 'timestamp' } }, staff.idToken));
+  await denied(await request(path, 'PATCH', { abonadoCentavos: 0 }, staff.idToken));
+  await denied(await request(`${path}/abonos/partial/montoCentavos`, 'PUT', 1, staff.idToken));
+  await denied(await request(`pagos/${alice.localId}`, 'GET', undefined, bob.idToken));
+  await denied(await request(path, 'DELETE', undefined, staff.idToken));
 });
 test('patient marks only their existing reminders as read', async () => {
   await allowed(await request(`recordatorios/${alice.localId}/r1/leido`, 'PUT', true, alice.idToken));

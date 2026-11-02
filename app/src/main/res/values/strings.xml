@@ -31,7 +31,7 @@
   <string name="home_title">Tu espacio personal</string>
   <string name="home_description">Consulta y actualiza tus datos de forma sencilla.</string>
   <string name="next_modules">Próximos módulos del equipo</string>
-  <string name="modules_description">Citas, tratamientos, pagos y recordatorios se incorporarán en las siguientes entregas.</string>
+  <string name="modules_description">La agenda de citas, los recordatorios y el contacto con la clínica se incorporarán en las siguientes entregas.</string>
   <string name="connection_online">Conectado a la clínica</string>
   <string name="connection_offline">Conectando… Necesitas internet para guardar cambios.</string>
   <string name="account_email">Correo de acceso: %1$s</string>

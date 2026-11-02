@@ -2,6 +2,7 @@ package com.example.detalmick
 
 import android.os.Bundle
 import android.graphics.Rect
+import android.content.Intent
 import android.view.View
 import android.view.ViewGroup
 import android.view.inputmethod.InputMethodManager
@@ -20,12 +21,15 @@ import com.example.detalmick.databinding.ContentProfileBinding
 import com.example.detalmick.ui.AccountState
 import com.example.detalmick.ui.AccountViewModel
 import com.example.detalmick.ui.Screen
+import com.example.detalmick.domain.AccessPortal
+import com.example.detalmick.domain.DentistIdentity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var model: AccountViewModel
     private var renderedScreen: Screen? = null
+    private var renderedPortal: AccessPortal? = null
     private var lastMessage = ""
     private var emailDraft = ""
     private var authForm: ContentAuthBinding? = null
@@ -71,7 +75,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         lastMessage = state.message
-        if (renderedScreen != state.screen) {
+        if (renderedScreen != state.screen || (state.screen in listOf(Screen.LOGIN, Screen.REGISTER, Screen.RESET) && renderedPortal != state.portal)) {
             (getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager)
                 .hideSoftInputFromWindow(binding.root.windowToken, 0)
             authForm?.password?.text?.clear()
@@ -84,6 +88,7 @@ class MainActivity : AppCompatActivity() {
                 Screen.PROFILE -> showProfile(state)
             }
             renderedScreen = state.screen
+            renderedPortal = state.portal
         }
         setEnabled(binding.content, !state.busy)
         home?.let {
@@ -91,11 +96,15 @@ class MainActivity : AppCompatActivity() {
             it.greeting.text = if (name.isBlank()) getString(R.string.home_title)
                 else getString(R.string.greeting, name.substringBefore(' '))
             it.fullName.text = name.ifBlank { "Tu perfil" }
-            it.email.text = state.email
+            it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario: ${state.email.substringBefore('@')}" else state.email
             it.role.setText(if (state.staff) R.string.staff_account else R.string.patient_account)
             it.edit.isEnabled = !state.busy && state.profile != null
             it.retry.isVisible = state.error || state.profile == null
             it.logout.isEnabled = true
+            it.treatments.isEnabled = !state.busy && (state.profileSaved || state.staff)
+            it.payments.isEnabled = !state.busy && (state.profileSaved || state.staff)
+            it.treatments.text = if (state.staff) "Gestionar tratamientos" else "Mis tratamientos"
+            it.payments.text = if (state.staff) "Gestionar pagos" else "Mis pagos"
         }
         profileForm?.let { it.logout.isEnabled = true; it.back.isVisible = state.profileSaved }
     }
@@ -105,9 +114,23 @@ class MainActivity : AppCompatActivity() {
         authForm = form
         val register = screen == Screen.REGISTER
         val reset = screen == Screen.RESET
+        val dentist = model.state.value?.portal == AccessPortal.DENTIST
+        form.portalGroup.isVisible = screen == Screen.LOGIN
+        form.portalGroup.check(if (dentist) R.id.dentistPortal else R.id.patientPortal)
+        form.portalGroup.addOnButtonCheckedListener { _, id, checked ->
+            if (checked) { emailDraft = ""; model.selectPortal(if (id == R.id.dentistPortal) AccessPortal.DENTIST else AccessPortal.PATIENT) }
+        }
         form.title.setText(when (screen) { Screen.REGISTER -> R.string.register_title; Screen.RESET -> R.string.reset_title; else -> R.string.login_title })
         ViewCompat.setAccessibilityHeading(form.title, true)
         form.description.setText(when (screen) { Screen.REGISTER -> R.string.register_description; Screen.RESET -> R.string.reset_description; else -> R.string.login_description })
+        if (dentist && screen == Screen.LOGIN) {
+            form.title.text = "Acceso de dentistas"
+            form.description.text = "Entra con tu usuario o correo autorizado para gestionar tratamientos y pagos."
+            form.emailLayout.hint = "Usuario o correo de dentista"
+            form.email.inputType = android.text.InputType.TYPE_CLASS_TEXT
+        } else if (screen == Screen.LOGIN) {
+            form.description.text = "Acceso exclusivo para pacientes. Consulta tus tratamientos, pagos y datos personales."
+        }
         form.nameLayout.isVisible = register
         form.confirmationLayout.isVisible = register
         form.passwordHelp.isVisible = register
@@ -116,6 +139,7 @@ class MainActivity : AppCompatActivity() {
         form.email.setText(emailDraft)
         form.submit.setText(when (screen) { Screen.REGISTER -> R.string.register; Screen.RESET -> R.string.reset; else -> R.string.login })
         form.secondary.setText(if (screen == Screen.LOGIN) R.string.register else R.string.back_login)
+        form.secondary.isVisible = !dentist || screen != Screen.LOGIN
         form.submit.setOnClickListener {
             when (screen) {
                 Screen.REGISTER -> model.register(form.name.text.toString(), form.email.text.toString(), form.password.text.toString(), form.confirmation.text.toString())
@@ -133,7 +157,15 @@ class MainActivity : AppCompatActivity() {
             it.edit.setOnClickListener { model.navigate(Screen.PROFILE) }
             it.retry.setOnClickListener { model.loadProfile() }
             it.logout.setOnClickListener { confirmLogout() }
+            it.treatments.setOnClickListener { openClinical("tratamientos") }
+            it.payments.setOnClickListener { openClinical("pagos") }
         }
+    }
+
+    private fun openClinical(tab: String) {
+        val state = model.state.value ?: return
+        if (state.busy || (!state.profileSaved && !state.staff)) return
+        startActivity(Intent(this, ClinicalActivity::class.java).putExtra("tab", tab))
     }
 
     private fun showProfile(state: AccountState) {
@@ -141,7 +173,8 @@ class MainActivity : AppCompatActivity() {
             it.name.setText(state.profile?.nombre.orEmpty())
             it.phone.setText(state.profile?.telefono.orEmpty())
             it.address.setText(state.profile?.direccion.orEmpty())
-            it.email.text = getString(R.string.account_email, state.email)
+            it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario de acceso: ${state.email.substringBefore('@')}"
+                else getString(R.string.account_email, state.email)
             it.save.setOnClickListener { _ -> model.save(it.name.text.toString(), it.phone.text.toString(), it.address.text.toString()) }
             it.back.setOnClickListener { leaveProfile() }
             it.logout.setOnClickListener { confirmLogout() }

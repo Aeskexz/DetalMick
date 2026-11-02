@@ -1,0 +1,17 @@
+<?xml version='1.0' encoding='utf-8'?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical">
+  <TextView android:id="@+id/title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Tratamientos y pagos" style="@style/Text.DetalMick.Title" />
+  <TextView android:id="@+id/subtitle" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Consulta tu información de la clínica." style="@style/Text.DetalMick.Body" android:layout_marginVertical="8dp" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/patientSelect" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:text="Seleccionar paciente" style="@style/Widget.Material3.Button.OutlinedButton" />
+  <com.google.android.material.button.MaterialButtonToggleGroup android:id="@+id/tabs" android:layout_width="match_parent" android:layout_height="wrap_content" app:singleSelection="true" app:selectionRequired="true" app:checkedButton="@id/treatmentsTab">
+    <com.google.android.material.button.MaterialButton android:id="@+id/treatmentsTab" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Tratamientos" android:layout_weight="1" style="@style/Widget.Material3.Button.OutlinedButton" />
+    <com.google.android.material.button.MaterialButton android:id="@+id/paymentsTab" android:layout_width="0dp" android:layout_height="wrap_content" android:text="Pagos" android:layout_weight="1" style="@style/Widget.Material3.Button.OutlinedButton" />
+  </com.google.android.material.button.MaterialButtonToggleGroup>
+  <com.google.android.material.button.MaterialButton android:id="@+id/filterSelect" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:text="Mostrar: Todos" style="@style/Widget.Material3.Button.OutlinedButton" />
+  <TextView android:id="@+id/summary" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="" style="@style/Text.DetalMick.Body" android:layout_marginVertical="8dp" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/create" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Registrar tratamiento" />
+  <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Aún no hay registros." style="@style/Text.DetalMick.Body" android:layout_marginVertical="8dp" />
+  <LinearLayout android:id="@+id/records" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/refresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Actualizar consulta" style="@style/Widget.Material3.Button.TextButton" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/back" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Volver al inicio" style="@style/Widget.Material3.Button.TextButton" />
+</LinearLayout>

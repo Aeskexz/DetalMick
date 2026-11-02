@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import com.example.detalmick.data.AccountRepository
 import com.example.detalmick.data.PatientProfile
 import com.example.detalmick.domain.Validation
+import com.example.detalmick.domain.AccessPortal
+import com.example.detalmick.domain.DentistIdentity
 import com.google.firebase.FirebaseNetworkException
 import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.FirebaseAuthException
@@ -25,7 +27,8 @@ data class AccountState(
     val profile: PatientProfile? = null,
     val profileSaved: Boolean = false,
     val staff: Boolean = false,
-    val email: String = ""
+    val email: String = "",
+    val portal: AccessPortal = AccessPortal.PATIENT
 )
 
 class AccountViewModel : ViewModel() {
@@ -47,7 +50,13 @@ class AccountViewModel : ViewModel() {
 
     init {
         repository.connection.addValueEventListener(connectionListener)
-        if (repository.auth.currentUser != null) loadProfile()
+        if (repository.auth.currentUser != null) authorizeAndLoad(restore = true)
+    }
+
+    fun selectPortal(portal: AccessPortal) {
+        if (current.busy || repository.auth.currentUser != null) return
+        if (current.portal == portal) return
+        update(current.copy(portal = portal, screen = Screen.LOGIN, message = "", error = false))
     }
 
     fun navigate(screen: Screen) {
@@ -58,21 +67,23 @@ class AccountViewModel : ViewModel() {
 
     fun login(email: String, password: String) {
         if (current.busy) return
-        val address = email.trim()
-        if (!Validation.email(address) || password.isEmpty()) {
-            fail("Escribe un correo válido y tu contraseña."); return
+        val address = if (current.portal == AccessPortal.DENTIST) DentistIdentity.email(email) else email.trim().takeIf(Validation::email)
+        if (address == null || password.isEmpty()) {
+            fail(if (current.portal == AccessPortal.DENTIST) "Escribe tu usuario de dentista o correo autorizado y tu contraseña." else "Escribe un correo válido y tu contraseña."); return
         }
         val operation = start()
         repository.login(address, password).addOnCompleteListener {
             if (operation != generation) return@addOnCompleteListener
-            if (it.isSuccessful) loadProfile() else fail(errorMessage(it.exception))
+            if (it.isSuccessful) authorizeAndLoad() else fail(errorMessage(it.exception))
         }
     }
 
     fun register(name: String, email: String, password: String, confirmation: String) {
         if (current.busy) return
+        if (current.portal != AccessPortal.PATIENT) { fail("Las cuentas de dentistas las habilita la administración."); return }
         if (!Validation.name(name)) { fail("Escribe tu nombre (máximo 120 caracteres)."); return }
         if (!Validation.email(email.trim())) { fail("Escribe un correo electrónico válido."); return }
+        if (DentistIdentity.isUsernameAccount(email.trim())) { fail("Usa tu correo personal para crear una cuenta de paciente."); return }
         if (!Validation.password(password)) { fail("Usa una contraseña de 8 a 128 caracteres."); return }
         if (password != confirmation) { fail("Las contraseñas no coinciden."); return }
         val operation = start()
@@ -94,11 +105,39 @@ class AccountViewModel : ViewModel() {
     }
 
     fun loadProfile() {
-        if (current.busy && current.screen == Screen.HOME) return
+        if (current.busy) return
+        authorizeAndLoad()
+    }
+
+    private fun authorizeAndLoad(restore: Boolean = false) {
         val user = repository.auth.currentUser ?: return
         val operation = start()
-        update(current.copy(screen = Screen.HOME, email = user.email.orEmpty()))
-        repository.profile(user.uid).addOnCompleteListener {
+        repository.role(user.uid).addOnCompleteListener roleComplete@ { role ->
+            if (operation != generation) return@roleComplete
+            if (!role.isSuccessful) {
+                rejectAccess("No pudimos verificar los permisos de tu cuenta. Revisa tu conexión e intenta de nuevo.")
+                return@roleComplete
+            }
+            val staff = role.result.value == true
+            val portal = if (staff) AccessPortal.DENTIST else AccessPortal.PATIENT
+            if (!restore && portal != current.portal) {
+                rejectAccess(if (staff) "Esta cuenta pertenece a un dentista. Entra desde Dentistas." else "Esta cuenta es de paciente. Entra desde Pacientes.")
+                return@roleComplete
+            }
+            update(current.copy(staff = staff, portal = portal, email = user.email.orEmpty(), screen = Screen.HOME))
+            readAuthorizedProfile(user.uid, operation, staff)
+        }
+    }
+
+    private fun rejectAccess(message: String) {
+        val portal = current.portal
+        generation++
+        repository.logout()
+        update(AccountState(portal = portal, connected = current.connected, message = message, error = true))
+    }
+
+    private fun readAuthorizedProfile(uid: String, operation: Int, staff: Boolean) {
+        repository.profile(uid, staff).addOnCompleteListener {
             if (operation != generation) return@addOnCompleteListener
             if (it.isSuccessful) {
                 val profile = try {
@@ -108,12 +147,11 @@ class AccountViewModel : ViewModel() {
                     fail("Tu perfil contiene datos que no se pueden mostrar. Comunícate con la clínica para revisarlos.")
                     return@addOnCompleteListener
                 }
-                update(current.copy(busy = false, screen = if (profile == null) Screen.PROFILE else Screen.HOME,
-                    profile = profile ?: PatientProfile(), profileSaved = profile != null,
-                    message = if (profile == null) "Completa tu nombre para terminar el registro." else ""))
-                repository.role(user.uid).addOnSuccessListener { role ->
-                    if (operation == generation) update(current.copy(staff = role.value == true))
-                }
+                val fallback = if (staff) PatientProfile(repository.auth.currentUser?.email?.substringBefore('@').orEmpty()) else PatientProfile()
+                update(current.copy(busy = false, screen = if (profile == null && !staff) Screen.PROFILE else Screen.HOME,
+                    profile = profile ?: fallback, profileSaved = profile != null,
+                    message = if (profile == null && staff) "Puedes completar tu perfil de dentista desde Editar mis datos."
+                        else if (profile == null) "Completa tu nombre para terminar el registro." else ""))
             } else {
                 fail("No pudimos cargar tu perfil. Revisa tu conexión e intenta de nuevo. Si continúa, verifica los permisos de la base de datos.")
             }
@@ -128,7 +166,7 @@ class AccountViewModel : ViewModel() {
         val uid = repository.auth.currentUser?.uid ?: return
         val profile = PatientProfile(name.trim(), phone.trim(), address.trim())
         val operation = start()
-        repository.save(uid, profile).addOnCompleteListener {
+        repository.save(uid, profile, current.staff).addOnCompleteListener {
             if (operation != generation) return@addOnCompleteListener
             if (it.isSuccessful) update(current.copy(busy = false, screen = Screen.HOME,
                 profile = profile, profileSaved = true, error = false, message = "Tus datos se guardaron correctamente."))
@@ -140,6 +178,9 @@ class AccountViewModel : ViewModel() {
 
     fun reset(email: String) {
         if (current.busy) return
+        if (DentistIdentity.isUsernameAccount(email.trim()) || (current.portal == AccessPortal.DENTIST && !Validation.email(email.trim()))) {
+            fail("Para recuperar una cuenta de dentista con nombre de usuario, comunícate con la administración."); return
+        }
         if (!Validation.email(email.trim())) { fail("Escribe un correo electrónico válido."); return }
         val operation = start()
         repository.reset(email.trim()).addOnCompleteListener {
