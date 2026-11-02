@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
+  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Title" android:text="Registrar Tratamiento" android:textSize="20sp" android:layout_marginBottom="16dp" />
+
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:background="@drawable/panel_background">
+    <EditText android:id="@+id/input_descripcion" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Descripción del tratamiento" android:padding="12dp" android:background="@android:drawable/edit_text" android:layout_marginBottom="12dp" />
+
+    <EditText android:id="@+id/input_detalles" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Detalles adicionales" android:padding="12dp" android:background="@android:drawable/edit_text" android:layout_marginBottom="12dp" android:lines="3" />
+
+    <EditText android:id="@+id/input_costo" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Costo (en pesos)" android:padding="12dp" android:background="@android:drawable/edit_text" android:inputType="numberDecimal" android:layout_marginBottom="12dp" />
+
+    <EditText android:id="@+id/input_paciente_id" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="ID del Paciente" android:padding="12dp" android:background="@android:drawable/edit_text" android:layout_marginBottom="12dp" />
+
+    <Button android:id="@+id/input_fecha" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Seleccionar Fecha" android:layout_marginBottom="16dp" />
+
+    <Button android:id="@+id/btn_guardar_tratamiento" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Guardar Tratamiento" android:layout_marginBottom="8dp" />
+
+    <Button android:id="@+id/btn_volver_registro_tratamiento" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Volver" />
+  </LinearLayout>
+</LinearLayout>

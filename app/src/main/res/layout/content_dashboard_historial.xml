@@ -1,8 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp">
   <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Title" android:text="Historial" android:textSize="20sp" android:layout_marginBottom="16dp" />
-  <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="Registro de tus tratamientos y visitas a la clínica" android:layout_marginBottom="16dp" />
-  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:padding="16dp" android:background="@drawable/panel_background">
-    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" style="@style/Text.DetalMick.Body" android:text="No hay registros disponibles" android:textSize="14sp" android:gravity="center" />
+
+  <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal" android:gravity="center" android:layout_marginBottom="16dp">
+    <Button android:id="@+id/btn_tab_tratamientos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Tratamientos" android:layout_marginEnd="8dp" />
+    <Button android:id="@+id/btn_tab_pagos" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Pagos" android:layout_marginStart="8dp" />
+  </LinearLayout>
+
+  <FrameLayout android:id="@+id/content_historial" android:layout_width="match_parent" android:layout_height="wrap_content" />
+
+  <LinearLayout android:id="@+id/personal_actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:visibility="gone" android:layout_marginTop="16dp">
+    <Button android:id="@+id/btn_registrar_tratamiento" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Registrar Tratamiento" android:layout_marginBottom="8dp" />
+    <Button android:id="@+id/btn_actualizar_pago" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Actualizar Pago" />
   </LinearLayout>
 </LinearLayout>
