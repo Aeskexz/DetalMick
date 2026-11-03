@@ -18,6 +18,9 @@ import java.io.File
 class AccountFlowTest {
     @Test fun patientAccountLifecycle() {
         assertTrue("This test must only run against local emulators", BuildConfig.USE_FIREBASE_EMULATORS)
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            com.example.detalmick.data.FirebaseProvider.auth.signOut()
+        }
         val email = "android-${System.currentTimeMillis()}@example.test"
         val password = "Prueba123!"
         ActivityScenario.launch(MainActivity::class.java).use { scenario ->

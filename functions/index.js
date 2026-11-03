@@ -12,7 +12,7 @@ exports.deleteDentist = onCall(async (request) => {
 
   const db = getDatabase();
   const callerRole = await db.ref(`roles/${request.auth.uid}`).get();
-  if (callerRole.child("admin").val() !== true) {
+  if (callerRole.child("admin").val() !== true || callerRole.child("activo").val() === false) {
     throw new HttpsError("permission-denied", "Solo un administrador puede eliminar cuentas.");
   }
 
@@ -26,15 +26,26 @@ exports.deleteDentist = onCall(async (request) => {
     throw new HttpsError("failed-precondition", "Solo se pueden eliminar cuentas de dentistas no administradores.");
   }
 
+  const auth = getAuth();
+  try {
+    await auth.getUser(uid);
+    await auth.deleteUser(uid);
+  } catch (error) {
+    if (error.code !== "auth/user-not-found") {
+      console.error("deleteDentist auth deletion failed", error);
+      throw new HttpsError("internal", "No se pudo eliminar la cuenta de Authentication.");
+    }
+  }
+
   try {
     await db.ref().update({
       [`dentistas/${uid}`]: null,
-      [`roles/${uid}`]: null
+      [`roles/${uid}`]: null,
+      [`clinica/dentistas/${uid}`]: null
     });
-    await getAuth().deleteUser(uid);
     return { deleted: true };
   } catch (error) {
-    console.error("deleteDentist failed", error);
-    throw new HttpsError("internal", "No se pudo completar la eliminación de la cuenta.");
+    console.error("deleteDentist database cleanup failed", error);
+    throw new HttpsError("internal", "La cuenta de Authentication fue eliminada, pero no se pudieron borrar sus datos de Realtime Database.");
   }
 });

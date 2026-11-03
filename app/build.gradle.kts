@@ -1,6 +1,21 @@
+import groovy.json.JsonSlurper
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.google.gms.google.services)
+}
+
+// The JSON stays private/local; a stale copy must not silently connect a teammate to another project.
+providers.fileContents(layout.projectDirectory.file("google-services.json")).asText.orNull?.let { contents ->
+    val config = JsonSlurper().parseText(contents) as Map<*, *>
+    val settings = JsonSlurper().parseText(
+        providers.fileContents(rootProject.layout.projectDirectory.file(".firebaserc")).asText.get()
+    ) as Map<*, *>
+    val expected = (settings["projects"] as Map<*, *>)["default"]
+    val actual = (config["project_info"] as Map<*, *>)["project_id"]
+    require(actual == expected) {
+        "app/google-services.json pertenece a '$actual'. Descarga el archivo del proyecto Firebase '$expected' y reemplázalo antes de compilar."
+    }
 }
 
 android {
@@ -48,6 +63,7 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
     implementation(libs.firebase.database)
+    implementation(libs.firebase.functions)
     implementation(libs.material)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.espresso.core)

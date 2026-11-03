@@ -135,11 +135,19 @@ class ClinicalActivity : AccessibleActivity() {
         card.addView(content); binding.records.addView(card)
     }
     private fun treatmentDetail(record: Treatment, staff: Boolean) {
-        val dialog = MaterialAlertDialogBuilder(this).setTitle(record.titulo)
-            .setMessage("${if (record.estado == "realizado") "Tratamiento realizado" else "Tratamiento programado"}\nFecha: ${Format.displayDate(record.fecha)}\nProfesional (ID): ${record.odontologo}\n\n${record.descripcion}")
+        fun detail(professional: String) = "${if (record.estado == "realizado") "Tratamiento realizado" else "Tratamiento programado"}\nFecha: ${Format.displayDate(record.fecha)}\nProfesional: $professional\n\n${record.descripcion}"
+        val builder = MaterialAlertDialogBuilder(this).setTitle(record.titulo)
+            .setMessage(detail("Profesional registrado en la clínica"))
             .setNegativeButton("Cerrar", null)
-        if (staff) dialog.setPositiveButton("Actualizar tratamiento") { _, _ -> edit("tratamiento", record.id) }
-        dialog.show()
+        if (staff) builder.setPositiveButton("Actualizar tratamiento") { _, _ -> edit("tratamiento", record.id) }
+        val dialog = builder.show()
+        if (record.odontologo.isNotBlank()) {
+            FirebaseProvider.database.getReference("clinica/dentistas/${record.odontologo}/nombre").get()
+                .addOnSuccessListener { name ->
+                    val professional = (name.value as? String).orEmpty()
+                    if (dialog.isShowing && professional.isNotBlank()) dialog.setMessage(detail(professional))
+                }
+        }
     }
     private fun paymentDetail(payment: Payment, staff: Boolean) {
         val history = if (payment.abonos.isEmpty()) "Aún no se han registrado abonos." else payment.abonos.joinToString("\n") {

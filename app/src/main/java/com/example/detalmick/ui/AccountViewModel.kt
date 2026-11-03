@@ -129,7 +129,7 @@ class AccountViewModel : ViewModel() {
             val reception = role.result.child("recepcionista").value == true
             val isStaff = role.result.child("personal").value == true || reception
             val isAdmin = role.result.child("admin").value == true
-            val mustChangePassword = isStaff && role.result.child("primerIngreso").value == true
+            val mustChangePassword = (isStaff || isAdmin) && role.result.child("primerIngreso").value == true
             val portal = when {
                 isAdmin -> AccessPortal.ADMIN
                 isStaff -> AccessPortal.DENTIST
@@ -162,7 +162,7 @@ class AccountViewModel : ViewModel() {
                     return@addOnCompleteListener
                 }
                 val fallback = if (staff) PatientProfile(repository.auth.currentUser?.email?.substringBefore('@').orEmpty()) else PatientProfile()
-                val needsProfile = profile == null || profile.nombre.isBlank() || (staff && !current.reception && (profile.nombre == "Dr/Dra. Invitado" || profile.especialidad.isBlank()))
+                val needsProfile = profile == null || profile.nombre.isBlank() || (staff && !current.admin && !current.reception && (profile.nombre == "Dr/Dra. Invitado" || profile.especialidad.isBlank()))
                 val mustChangePassword = current.mustChangePassword
                 update(current.copy(busy = false,
                     screen = if (needsProfile || mustChangePassword) Screen.PROFILE else Screen.HOME,
@@ -197,7 +197,7 @@ class AccountViewModel : ViewModel() {
         val mustChangePassword = current.mustChangePassword
 
         fun saveProfile() {
-            repository.save(uid, profile, current.staff, !current.reception).addOnCompleteListener profileComplete@ { saved ->
+            repository.save(uid, profile, current.staff, !current.reception && !current.admin).addOnCompleteListener profileComplete@ { saved ->
                 if (operation != generation) return@profileComplete
                 if (!saved.isSuccessful) {
                     fail(if (saved.exception is TimeoutException)

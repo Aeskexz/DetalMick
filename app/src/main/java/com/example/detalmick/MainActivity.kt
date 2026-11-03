@@ -201,7 +201,7 @@ class MainActivity : AccessibleActivity() {
             it.phone.setText(state.profile?.telefono.orEmpty())
             it.address.setText(state.profile?.direccion.orEmpty())
             it.especialidad.setText(state.profile?.especialidad.orEmpty())
-            it.especialidadLayout.isVisible = state.staff && !state.reception
+            it.especialidadLayout.isVisible = state.staff && !state.admin && !state.reception
             it.changePasswordLayout.hint = if (state.mustChangePassword) "Nueva contraseña obligatoria" else "Nueva contraseña (opcional)"
             if (state.mustChangePassword) it.save.text = "Cambiar contraseña y continuar"
 

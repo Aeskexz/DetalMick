@@ -1,29 +1,19 @@
 // Trusted workstation tool. Never import this administrative code into the Android app.
 // Password is supplied through a process environment variable, never a source file.
-import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
-import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { deleteApp } from 'firebase-admin/app';
 import { getAuth } from 'firebase-admin/auth';
 import { getDatabase } from 'firebase-admin/database';
+import { configuredAdmin } from './admin-session.mjs';
 
-const require = createRequire(import.meta.url);
-const cliAuth = require('firebase-tools/lib/auth');
-const { requireAuth } = require('firebase-tools/lib/requireAuth');
-const { getAccessToken } = require('firebase-tools/lib/apiv2');
 const args = process.argv.slice(2);
-const value = flag => args[args.indexOf(flag) + 1];
-const project = 'detalmick-a35b2';
+const value = flag => args.includes(flag) ? args[args.indexOf(flag) + 1] : undefined;
 const username = value('--username');
 if (!username || !/^[a-zA-Z0-9_]{3,40}$/.test(username)) throw new Error('Indica --username con un usuario válido.');
 const password = process.env.DETALMICK_DENTIST_PASSWORD;
 if (!password || password.length < 6) throw new Error('Falta la contraseña temporal en DETALMICK_DENTIST_PASSWORD.');
-const account = cliAuth.getGlobalDefaultAccount();
-if (!account) throw new Error('Inicia sesión con firebase login usando la cuenta administradora del proyecto.');
-await requireAuth({ ...account, project, nonInteractive: true });
-const app = initializeApp({ projectId: project,
-  databaseURL: 'https://detalmick-a35b2-default-rtdb.firebaseio.com',
-  credential: { getAccessToken: async () => ({ access_token: await getAccessToken(), expires_in: 300 }) }
-}, 'dentist-provisioning');
+const app = await configuredAdmin('dentist-provisioning');
+const project = app.options.projectId;
 try {
   const auth = getAuth(app);
   const database = getDatabase(app);
