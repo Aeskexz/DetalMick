@@ -6,6 +6,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseError
 import com.google.firebase.database.ValueEventListener
+import com.google.firebase.functions.FirebaseFunctionsException
 
 class AdminRepository {
     private val database get() = FirebaseProvider.database
@@ -81,10 +82,35 @@ class AdminRepository {
     }
 
     fun deleteDentist(uid: String, onComplete: (Boolean, String?) -> Unit) {
-        database.reference.updateChildren(
-            mapOf("dentistas/$uid" to null, "roles/$uid" to null)
-        ).addOnSuccessListener { onComplete(true, null) }
-            .addOnFailureListener { onComplete(false, it.localizedMessage) }
+        val user = FirebaseProvider.auth.currentUser
+        if (user == null) {
+            onComplete(false, "Tu sesión expiró. Cierra sesión e inicia de nuevo como administrador.")
+            return
+        }
+
+        user.getIdToken(true)
+            .addOnSuccessListener {
+                FirebaseProvider.functions.getHttpsCallable("deleteDentist")
+                    .call(mapOf("uid" to uid))
+                    .addOnSuccessListener { onComplete(true, null) }
+                    .addOnFailureListener { error ->
+                        val message = if (error is FirebaseFunctionsException) {
+                            when (error.code) {
+                                FirebaseFunctionsException.Code.UNAUTHENTICATED ->
+                                    "La función no recibió tu sesión. Verifica que esté desplegada en el mismo proyecto Firebase que usa la app y vuelve a iniciar sesión."
+                                FirebaseFunctionsException.Code.PERMISSION_DENIED ->
+                                    "Tu cuenta no tiene el permiso de administrador en Realtime Database."
+                                FirebaseFunctionsException.Code.NOT_FOUND ->
+                                    "No se encontró la función deleteDentist en este proyecto o región."
+                                else -> error.localizedMessage
+                            }
+                        } else error.localizedMessage
+                        onComplete(false, message)
+                    }
+            }
+            .addOnFailureListener {
+                onComplete(false, "No se pudo renovar tu sesión de administrador. Cierra sesión e inicia de nuevo.")
+            }
     }
 
     fun setStaffStatus(uid: String, activo: Boolean, onComplete: (Boolean, String?) -> Unit) {

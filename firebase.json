@@ -2,7 +2,11 @@
   "database": {
     "rules": "database.rules.json"
   },
+  "functions": {
+    "source": "functions"
+  },
   "emulators": {
+    "functions": { "port": 5001 },
     "auth": {
       "host": "127.0.0.1",
       "port": 9099
