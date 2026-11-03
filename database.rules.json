@@ -3,21 +3,37 @@
     ".read": false,
     ".write": false,
     "roles": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).child('admin').val() === true || root.child('roles').child(auth.uid).child('personal').val() === true)",
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('admin').val() === true",
+        ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true) && $uid !== auth.uid && newData.exists() && data.child('admin').val() !== true && newData.child('admin').val() !== true",
         "primerIngreso": {
           ".write": "auth != null && auth.uid === $uid && data.val() === true && newData.val() === false",
+          ".validate": "newData.isBoolean()"
+        },
+        ".validate": "newData.hasChildren(['activo'])",
+        "activo": {
+          ".validate": "newData.isBoolean()"
+        },
+        "personal": {
+          ".validate": "newData.isBoolean()"
+        },
+        "admin": {
+          ".validate": "newData.isBoolean()"
+        },
+        "$other": {
+          ".validate": false
+        },
+        "recepcionista": {
           ".validate": "newData.isBoolean()"
         }
       }
     },
     "usuarios": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)",
+      ".read": "((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true))",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid && root.child('roles').child(auth.uid).child('personal').val() !== true && newData.exists()",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && newData.exists() && root.child('roles').child($uid).child('personal').val() !== true && root.child('roles').child($uid).child('admin').val() !== true && root.child('roles').child($uid).child('recepcionista').val() !== true && (auth.uid === $uid || ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)))",
         ".validate": "newData.hasChildren(['nombre'])",
         "nombre": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -35,47 +51,119 @@
     },
     "servicios": {
       ".read": true,
-      ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+      ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
+      "$id": {
+        ".validate": "newData.hasChildren(['nombre'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
     },
     "clinica": {
       ".read": true,
-      ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true"
+      ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
+      "dentistas": {
+        "$uid": {
+          ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && auth.uid === $uid && newData.exists()",
+          ".validate": "newData.hasChildren(['nombre']) && newData.parent().parent().parent().child('roles').child($uid).child('activo').val() !== false && (newData.parent().parent().parent().child('roles').child($uid).child('personal').val() === true || newData.parent().parent().parent().child('roles').child($uid).child('admin').val() === true)",
+          "nombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "especialidad": {
+            ".validate": "newData.isString() && newData.val().length <= 120"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
     },
     "citas": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
+      ".read": "((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true))",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
+        ".read": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && auth.uid === $uid",
         "$id": {
-          ".write": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('dentista').val() === true)",
-          ".validate": "!newData.exists() || newData.hasChildren(['uid','dentistaId','servicioId','fecha','horario','estado'])",
-          "uid": { ".validate": "newData.val() === $uid" },
-          "id": { ".validate": "newData.isString()" },
-          "fecha": { ".validate": "newData.isString() && newData.val().matches(/^[0-9]{4}-(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/)" },
-          "horario": { ".validate": "newData.isString() && newData.val().matches(/^[0-2][0-9]:00 - [0-2][0-9]:00$/)" },
-          "estado": { ".validate": "newData.val() === 'confirmada' || newData.val() === 'reprogramada' || newData.val() === 'cancelada'" },
-          "pacienteNombre": { ".validate": "newData.isString() && newData.val().length <= 120" },
-          "dentistaId": { ".validate": "newData.isString()" },
-          "dentistaNombre": { ".validate": "newData.isString()" },
-          "servicioId": { ".validate": "newData.isString()" },
-          "servicioNombre": { ".validate": "newData.isString()" },
-          "$other": { ".validate": false }
+          ".write": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && newData.exists() && ((auth.uid === $uid || ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && (data.child('dentistaId').val() === auth.uid || root.child('roles').child(auth.uid).child('admin').val() === true))) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true) || ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && newData.child('dentistaId').val() === auth.uid))",
+          ".validate": "newData.hasChildren(['id','uid','pacienteNombre','dentistaId','dentistaNombre','servicioId','servicioNombre','fecha','horario','estado','inicioEn','asistenciaConfirmada']) && root.child('usuarios').child($uid).exists() && (!data.exists() ? (newData.child('estado').val() === 'confirmada' && newData.child('asistenciaConfirmada').val() === false) : data.child('estado').val() !== 'cancelada') && (!data.exists() || (newData.child('dentistaId').val() === data.child('dentistaId').val() && newData.child('servicioId').val() === data.child('servicioId').val() && newData.child('pacienteNombre').val() === data.child('pacienteNombre').val() && newData.child('dentistaNombre').val() === data.child('dentistaNombre').val() && newData.child('servicioNombre').val() === data.child('servicioNombre').val())) && (newData.child('estado').val() === 'cancelada' ? (!data.exists() ? false : newData.parent().parent().parent().child('agenda').child(data.child('dentistaId').val()).child(data.child('fecha').val()).child(data.child('slotKey').val()).child('id').val() !== $id) : (newData.parent().parent().parent().child('agenda').child(newData.child('dentistaId').val()).child(newData.child('fecha').val()).child(newData.child('slotKey').val()).child('uid').val() === $uid && newData.parent().parent().parent().child('agenda').child(newData.child('dentistaId').val()).child(newData.child('fecha').val()).child(newData.child('slotKey').val()).child('id').val() === $id)) && (!data.exists() || (newData.child('fecha').val() === data.child('fecha').val() && newData.child('horario').val() === data.child('horario').val()) || (newData.parent().parent().parent().child('agenda').child(data.child('dentistaId').val()).child(data.child('fecha').val()).child(data.child('slotKey').val()).child('id').val() !== $id && newData.child('estado').val() === 'reprogramada' && newData.child('asistenciaConfirmada').val() === false))",
+          "uid": {
+            ".validate": "newData.val() === $uid"
+          },
+          "id": {
+            ".validate": "newData.val() === $id"
+          },
+          "fecha": {
+            ".validate": "newData.isString() && newData.val() === newData.parent().child('anio').val()+'-'+(newData.parent().child('mes').val()<10 ? '0' : '')+newData.parent().child('mes').val()+'-'+(newData.parent().child('dia').val()<10 ? '0' : '')+newData.parent().child('dia').val()"
+          },
+          "horario": {
+            ".validate": "newData.isString() && newData.val().matches(/^(09:00 - 10:00|10:00 - 11:00|11:00 - 12:00|12:00 - 13:00|13:00 - 14:00|14:00 - 15:00|15:00 - 16:00|16:00 - 17:00)$/)"
+          },
+          "estado": {
+            ".validate": "newData.val() === 'confirmada' || newData.val() === 'reprogramada' || newData.val() === 'cancelada'"
+          },
+          "inicioEn": {
+            ".validate": "newData.isNumber() && newData.val() % 3600000 === 0 && ((!data.exists() || newData.val() !== data.val()) ? newData.val() > now : true) && newData.val() === ((365*(newData.parent().child('anio').val()-1970)+(((newData.parent().child('anio').val()-1)/4)-(((newData.parent().child('anio').val()-1)/4)%1))-492-(((newData.parent().child('anio').val()-1)/100)-(((newData.parent().child('anio').val()-1)/100)%1))+19+(((newData.parent().child('anio').val()-1)/400)-(((newData.parent().child('anio').val()-1)/400)%1))-4+(newData.parent().child('mes').val() === 1 ? 0 : newData.parent().child('mes').val() === 2 ? 31 : newData.parent().child('mes').val() === 3 ? 59 : newData.parent().child('mes').val() === 4 ? 90 : newData.parent().child('mes').val() === 5 ? 120 : newData.parent().child('mes').val() === 6 ? 151 : newData.parent().child('mes').val() === 7 ? 181 : newData.parent().child('mes').val() === 8 ? 212 : newData.parent().child('mes').val() === 9 ? 243 : newData.parent().child('mes').val() === 10 ? 273 : newData.parent().child('mes').val() === 11 ? 304 : 334)+(newData.parent().child('mes').val()>2 && (newData.parent().child('anio').val()%4 === 0 && (newData.parent().child('anio').val()%100 !== 0 || newData.parent().child('anio').val()%400 === 0)) ? 1 : 0)+newData.parent().child('dia').val()-1)*24+(newData.parent().child('slotKey').val() === '0900' ? 9 : newData.parent().child('slotKey').val() === '1000' ? 10 : newData.parent().child('slotKey').val() === '1100' ? 11 : newData.parent().child('slotKey').val() === '1200' ? 12 : newData.parent().child('slotKey').val() === '1300' ? 13 : newData.parent().child('slotKey').val() === '1400' ? 14 : newData.parent().child('slotKey').val() === '1500' ? 15 : 16)+6)*3600000 && ((newData.val()-newData.val()%86400000)/86400000+4)%7 !== 0"
+          },
+          "asistenciaConfirmada": {
+            ".validate": "newData.isBoolean()"
+          },
+          "$other": {
+            ".validate": false
+          },
+          "pacienteNombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "dentistaNombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "servicioNombre": {
+            ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+          },
+          "slotKey": {
+            ".validate": "(newData.val() === '0900' && newData.parent().child('horario').val() === '09:00 - 10:00') || (newData.val() === '1000' && newData.parent().child('horario').val() === '10:00 - 11:00') || (newData.val() === '1100' && newData.parent().child('horario').val() === '11:00 - 12:00') || (newData.val() === '1200' && newData.parent().child('horario').val() === '12:00 - 13:00') || (newData.val() === '1300' && newData.parent().child('horario').val() === '13:00 - 14:00') || (newData.val() === '1400' && newData.parent().child('horario').val() === '14:00 - 15:00') || (newData.val() === '1500' && newData.parent().child('horario').val() === '15:00 - 16:00') || (newData.val() === '1600' && newData.parent().child('horario').val() === '16:00 - 17:00')"
+          },
+          "anio": {
+            ".validate": "newData.isNumber() && newData.val()%1 === 0 && newData.val() >= 1970 && newData.val() <= 2100"
+          },
+          "mes": {
+            ".validate": "newData.isNumber() && newData.val()%1 === 0 && newData.val() >= 1 && newData.val() <= 12"
+          },
+          "dia": {
+            ".validate": "newData.isNumber() && newData.val()%1 === 0 && newData.val() >= 1 && newData.val() <= (newData.parent().child('mes').val() === 2 ? ((newData.parent().child('anio').val()%4 === 0 && (newData.parent().child('anio').val()%100 !== 0 || newData.parent().child('anio').val()%400 === 0)) ? 29 : 28) : (newData.parent().child('mes').val() === 4 || newData.parent().child('mes').val() === 6 || newData.parent().child('mes').val() === 9 || newData.parent().child('mes').val() === 11 ? 30 : 31))"
+          },
+          "dentistaId": {
+            ".validate": "newData.isString() && (data.exists() || root.child('clinica/dentistas').child(newData.val()).exists()) && (data.exists() || root.child('roles').child(newData.val()).child('activo').val() !== false)"
+          },
+          "servicioId": {
+            ".validate": "newData.isString() && (data.exists() || root.child('servicios').child(newData.val()).exists())"
+          }
         }
       }
     },
     "agenda": {
       "$dentistaId": {
         "$fecha": {
-          ".read": "auth != null",
+          ".read": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false",
           "$hora": {
-            ".validate": "newData.isString()",
-            ".write": "auth != null && ((!data.exists() && newData.isString() && (newData.val() === auth.uid || root.child('roles').child(auth.uid).child('personal').val() === true)) || (data.exists() && !newData.exists() && (data.val() === auth.uid || root.child('roles').child(auth.uid).child('personal').val() === true)))"
+            ".write": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && ((!data.exists() && newData.exists() && (newData.child('uid').val() === auth.uid || ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true))) && newData.parent().parent().parent().parent().child('citas').child(newData.child('uid').val()).child(newData.child('id').val()).child('dentistaId').val() === $dentistaId && newData.parent().parent().parent().parent().child('citas').child(newData.child('uid').val()).child(newData.child('id').val()).child('fecha').val() === $fecha && newData.parent().parent().parent().parent().child('citas').child(newData.child('uid').val()).child(newData.child('id').val()).child('slotKey').val() === $hora && newData.parent().parent().parent().parent().child('citas').child(newData.child('uid').val()).child(newData.child('id').val()).child('estado').val() !== 'cancelada') || (data.exists() && !newData.exists() && (data.child('uid').val() === auth.uid || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true) || ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && ($dentistaId === auth.uid || root.child('roles').child(auth.uid).child('admin').val() === true))) && (newData.parent().parent().parent().parent().child('citas').child(data.child('uid').val()).child(data.child('id').val()).child('estado').val() === 'cancelada' || newData.parent().parent().parent().parent().child('citas').child(data.child('uid').val()).child(data.child('id').val()).child('fecha').val() !== $fecha || newData.parent().parent().parent().parent().child('citas').child(data.child('uid').val()).child(data.child('id').val()).child('slotKey').val() !== $hora)))",
+            ".validate": "newData.hasChildren(['uid','id'])",
+            "uid": {
+              ".validate": "newData.isString()"
+            },
+            "id": {
+              ".validate": "newData.isString()"
+            },
+            "$other": {
+              ".validate": false
+            }
           }
         }
       }
     },
     "tratamientos": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true))",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".indexOn": [
@@ -83,7 +171,7 @@
           "estado"
         ],
         "$id": {
-          ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && newData.exists() && root.child('usuarios').child($uid).exists()",
+          ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && newData.exists() && root.child('usuarios').child($uid).exists()",
           ".validate": "newData.hasChildren(['titulo','descripcion','estado','fecha','creadoEn','actualizadoEn','registradoPor'])",
           "titulo": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -113,7 +201,7 @@
       }
     },
     "pagos": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      ".read": "((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true))",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".indexOn": [
@@ -121,8 +209,8 @@
           "estado"
         ],
         "$id": {
-          ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && newData.exists() && root.child('usuarios').child($uid).exists()",
-          ".validate": "newData.hasChildren(['concepto','totalCentavos','abonadoCentavos','estado','fechaLimite','creadoEn','actualizadoEn','registradoPor']) && newData.child('abonadoCentavos').val() <= newData.child('totalCentavos').val() && (newData.child('estado').val() === 'pagado' ? newData.child('abonadoCentavos').val() === newData.child('totalCentavos').val() : newData.child('abonadoCentavos').val() < newData.child('totalCentavos').val()) && (newData.child('abonadoCentavos').val() === 0 || newData.child('abonos').exists())",
+          ".write": "((((((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)) || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('recepcionista').val() === true)) && newData.exists() && root.child('usuarios').child($uid).exists()",
+          ".validate": "newData.hasChildren(['concepto','totalCentavos','abonadoCentavos','estado','fechaLimite','creadoEn','actualizadoEn','registradoPor']) && newData.child('abonadoCentavos').val() <= newData.child('totalCentavos').val() && (newData.child('estado').val() === 'pagado' ? newData.child('abonadoCentavos').val() === newData.child('totalCentavos').val() : newData.child('abonadoCentavos').val() < newData.child('totalCentavos').val()) && (newData.child('abonadoCentavos').val() === 0 || newData.child('abonos').exists()) && (data.exists() || newData.hasChildren(['citaId'])) && (data.exists() || newData.hasChildren(['citaId'])) && (data.exists() || newData.hasChildren(['citaId'])) && (data.exists() || newData.hasChildren(['citaId'])) && (data.exists() || newData.hasChildren(['citaId']))",
           "concepto": {
             ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120 && (!data.exists() || newData.val() === data.val())"
           },
@@ -166,15 +254,18 @@
           },
           "$other": {
             ".validate": false
+          },
+          "citaId": {
+            ".validate": "newData.isString() && root.child('citas').child($uid).child(newData.val()).exists() && (!data.exists() || newData.val() === data.val())"
           }
         }
       }
     },
     "recordatorios": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true))",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+        ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true))",
         "$recordatorioId": {
           "leido": {
             ".write": "auth != null && auth.uid === $uid && data.parent().exists() && newData.exists()",
@@ -184,10 +275,10 @@
       }
     },
     "dentistas": {
-      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)",
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).child('admin').val() === true)",
-        ".write": "auth != null && (root.child('roles').child(auth.uid).child('admin').val() === true || (root.child('roles').child(auth.uid).child('personal').val() === true && auth.uid === $uid && newData.exists()))",
+        ".read": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (auth.uid === $uid || root.child('roles').child(auth.uid).child('admin').val() === true)",
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && newData.exists() && (root.child('roles').child(auth.uid).child('admin').val() === true || (root.child('roles').child(auth.uid).child('personal').val() === true && auth.uid === $uid))",
         ".validate": "newData.hasChildren(['nombre'])",
         "nombre": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -199,10 +290,107 @@
           ".validate": "newData.isString() && newData.val().length <= 120"
         },
         "activo": {
-          ".validate": "newData.isBoolean()"
+          ".validate": "newData.isBoolean() && ((auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true) || newData.val() === data.val())"
         },
         "$other": {
-          ".validate": true
+          ".validate": false
+        },
+        "email": {
+          ".validate": "newData.isString() && newData.val().length <= 254"
+        },
+        "direccion": {
+          ".validate": "newData.isString() && newData.val().length <= 300"
+        }
+      }
+    },
+    "solicitudesCitas": {
+      "$uid": {
+        ".read": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && auth.uid === $uid",
+        "$id": {
+          ".write": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && auth.uid === $uid && !data.exists() && newData.exists() && root.child('usuarios').child($uid).exists()",
+          ".validate": "newData.hasChildren(['servicioId','fechaSolicitada','creadoEn'])",
+          "servicioId": {
+            ".validate": "newData.isString() && root.child('servicios').child(newData.val()).exists()"
+          },
+          "fechaSolicitada": {
+            ".validate": "newData.isNumber() && newData.val() > now"
+          },
+          "creadoEn": {
+            ".validate": "newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "odontogramas": {
+      "$uid": {
+        ".read": "auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (auth.uid === $uid || (auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)))",
+        ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)) && newData.exists() && root.child('usuarios').child($uid).exists()",
+        ".validate": "newData.hasChildren(['dientes','revision','actualizadoEn','registradoPor'])",
+        "dientes": {
+          "$tooth": {
+            ".validate": "$tooth.matches(/^[1-4][1-8]$/) && (newData.val() === 'sano' || newData.val() === 'caries' || newData.val() === 'restaurado' || newData.val() === 'ausente')"
+          }
+        },
+        "observaciones": {
+          ".validate": "newData.isString() && newData.val().length <= 2000"
+        },
+        "revision": {
+          ".validate": "newData.isNumber() && (!data.exists() ? newData.val() === 1 : newData.val() === data.val()+1)"
+        },
+        "actualizadoEn": {
+          ".validate": "newData.val() === now"
+        },
+        "registradoPor": {
+          ".validate": "newData.val() === auth.uid"
+        },
+        "$other": {
+          ".validate": false
+        }
+      }
+    },
+    "eventosSeguridad": {
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
+      "$uid": {
+        "$id": {
+          ".write": "auth != null && auth.uid === $uid && !data.exists() && newData.exists()",
+          ".validate": "newData.hasChildren(['codigo','creadoEn'])",
+          "codigo": {
+            ".validate": "newData.isString() && newData.val().length <= 80"
+          },
+          "creadoEn": {
+            ".validate": "newData.val() === now"
+          },
+          "$other": {
+            ".validate": false
+          }
+        }
+      }
+    },
+    "inventario": {
+      ".read": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true)",
+      "$id": {
+        ".write": "(auth != null && root.child('roles').child(auth.uid).child('activo').val() !== false && root.child('roles').child(auth.uid).child('admin').val() === true) && newData.exists()",
+        ".validate": "newData.hasChildren(['nombre','stock','minimo','revision','actualizadoEn'])",
+        "nombre": {
+          ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
+        },
+        "stock": {
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000"
+        },
+        "minimo": {
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0 && newData.val() >= 0 && newData.val() <= 1000000"
+        },
+        "revision": {
+          ".validate": "newData.isNumber() && (!data.exists() ? newData.val() === 1 : newData.val() === data.val()+1)"
+        },
+        "actualizadoEn": {
+          ".validate": "newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
         }
       }
     }

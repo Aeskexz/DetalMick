@@ -13,5 +13,6 @@
   <TextView android:id="@+id/empty" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Aún no hay registros." style="@style/Text.DetalMick.Body" android:layout_marginVertical="8dp" />
   <LinearLayout android:id="@+id/records" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" />
   <com.google.android.material.button.MaterialButton android:id="@+id/refresh" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Actualizar consulta" style="@style/Widget.Material3.Button.TextButton" />
+  <com.google.android.material.button.MaterialButton android:id="@+id/patientRecord" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:text="Expediente y odontograma" />
   <com.google.android.material.button.MaterialButton android:id="@+id/back" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Volver al inicio" style="@style/Widget.Material3.Button.TextButton" />
 </LinearLayout>

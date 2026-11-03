@@ -25,7 +25,7 @@ import com.example.detalmick.domain.AccessPortal
 import com.example.detalmick.domain.DentistIdentity
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AccessibleActivity() {
     private lateinit var binding: ActivityMainBinding
     private lateinit var model: AccountViewModel
     private var renderedScreen: Screen? = null
@@ -99,12 +99,14 @@ class MainActivity : AppCompatActivity() {
             it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario: ${state.email.substringBefore('@')}" else state.email
             it.role.text = when {
                 state.admin -> "Cuenta de administrador"
+                state.reception -> "Cuenta de recepción"
                 state.staff -> getString(R.string.staff_account)
                 else -> getString(R.string.patient_account)
             }
             it.edit.isEnabled = !state.busy && state.profile != null
             it.retry.isVisible = state.error || state.profile == null
             it.logout.isEnabled = true
+            it.treatments.isVisible = !state.reception
             it.treatments.isEnabled = !state.busy && (state.profileSaved || state.staff)
             it.payments.isEnabled = !state.busy && (state.profileSaved || state.staff)
             it.citas.isEnabled = !state.busy && (state.profileSaved || state.staff)
@@ -167,6 +169,7 @@ class MainActivity : AppCompatActivity() {
             it.payments.setOnClickListener { openClinical("pagos") }
             it.citas.setOnClickListener { openCitas() }
             it.adminPanel.setOnClickListener { openAdmin() }
+            it.clinic.setOnClickListener { startActivity(Intent(this, ClinicActivity::class.java)) }
         }
     }
 
@@ -198,7 +201,7 @@ class MainActivity : AppCompatActivity() {
             it.phone.setText(state.profile?.telefono.orEmpty())
             it.address.setText(state.profile?.direccion.orEmpty())
             it.especialidad.setText(state.profile?.especialidad.orEmpty())
-            it.especialidadLayout.isVisible = state.staff
+            it.especialidadLayout.isVisible = state.staff && !state.reception
             it.changePasswordLayout.hint = if (state.mustChangePassword) "Nueva contraseña obligatoria" else "Nueva contraseña (opcional)"
             if (state.mustChangePassword) it.save.text = "Cambiar contraseña y continuar"
 
@@ -235,7 +238,9 @@ class MainActivity : AppCompatActivity() {
         val saved = model.state.value?.profile ?: return false
         return form.name.text.toString().trim() != saved.nombre ||
                 form.phone.text.toString().trim() != saved.telefono ||
-                form.address.text.toString().trim() != saved.direccion
+                form.address.text.toString().trim() != saved.direccion ||
+                form.especialidad.text.toString().trim() != saved.especialidad ||
+                form.changePassword.text.toString().isNotEmpty()
     }
 
     private fun leaveProfile() {

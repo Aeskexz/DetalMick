@@ -14,7 +14,7 @@ class ClinicalRepository {
     }
     private val database get() = FirebaseProvider.database
     private val uid get() = FirebaseProvider.auth.currentUser?.uid ?: error("Inicia sesión para continuar.")
-    fun role() = timed(database.getReference("roles").child(uid).child("personal").get())
+    fun role() = timed(database.getReference("roles").child(uid).get())
     fun patients(): DatabaseReference = database.getReference("usuarios")
     fun treatments(patient: String): DatabaseReference = database.getReference("tratamientos").child(patient)
     fun payments(patient: String): DatabaseReference = database.getReference("pagos").child(patient)
@@ -45,16 +45,16 @@ class ClinicalRepository {
         return timed(source.task)
     }
 
-    fun createCharge(patient: String, id: String, concept: String, total: Long, due: String): Task<Void> {
+    fun createCharge(patient: String, id: String, concept: String, total: Long, due: String, citaId: String): Task<Void> {
         val source = TaskCompletionSource<Void>()
         val author = uid
-        val values = mapOf("concepto" to concept, "totalCentavos" to total, "abonadoCentavos" to 0L,
+        val values = mapOf("concepto" to concept, "totalCentavos" to total, "abonadoCentavos" to 0L, "citaId" to citaId,
             "fechaLimite" to due, "estado" to "pendiente", "creadoEn" to ServerValue.TIMESTAMP,
             "actualizadoEn" to ServerValue.TIMESTAMP, "registradoPor" to author)
         payments(patient).child(id).runTransaction(object : Transaction.Handler {
             override fun doTransaction(data: MutableData): Transaction.Result {
                 if (data.value == null) data.value = values
-                else if (data.child("concepto").value != concept || data.child("totalCentavos").value != total || data.child("fechaLimite").value != due) return Transaction.abort()
+                else if (data.child("concepto").value != concept || data.child("totalCentavos").value != total || data.child("fechaLimite").value != due || data.child("citaId").value != citaId) return Transaction.abort()
                 return Transaction.success(data)
             }
             override fun onComplete(error: DatabaseError?, committed: Boolean, snapshot: DataSnapshot?) {

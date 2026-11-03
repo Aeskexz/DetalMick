@@ -18,3 +18,10 @@ database-debug.log
 ui-debug.log
 local.properties
 google-services.json
+/tmp/
+/output/
+/*-audit.log
+/build-final.log
+/build-delivery.log
+/android-*.log
+/emulator-audit*.log

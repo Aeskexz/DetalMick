@@ -27,6 +27,9 @@ class CitaRepository {
 
     suspend fun servicios() = opciones("servicios")
     suspend fun dentistas() = opciones("clinica/dentistas")
+    suspend fun rol(uid: String) = safe { db.child("roles/$uid").get().await() }
+    suspend fun pacientes() = opciones("usuarios")
+    suspend fun nombrePaciente(uid: String) = safe { db.child("usuarios/$uid/nombre").get().await().value as? String ?: "" }
     private suspend fun opciones(ruta: String) = safe {
         db.child(ruta).get().await().children.mapNotNull { n ->
             val nombre = n.child("nombre").getValue(String::class.java)
@@ -39,18 +42,21 @@ class CitaRepository {
         db.child("agenda/$dentistaId/$fecha").get().await().children.mapNotNull { it.key }.toSet()
     }
 
-    suspend fun agendar(c: Cita) = escribir(mapOf("citas/${c.uid}/${c.id}" to c, slot(c) to c.uid))
+    private fun ocupacion(c: Cita) = mapOf("uid" to c.uid, "id" to c.id)
+    suspend fun agendar(c: Cita) = escribir(mapOf("citas/${c.uid}/${c.id}" to c, slot(c) to ocupacion(c)))
 
     suspend fun cancelar(c: Cita) = escribir(mapOf("citas/${c.uid}/${c.id}/estado" to "cancelada", slot(c) to null))
 
+    suspend fun confirmar(c: Cita) = escribir(mapOf("citas/${c.uid}/${c.id}/asistenciaConfirmada" to true))
+
     suspend fun reprogramar(c: Cita, fecha: String, horario: String): Result<Unit> {
-        val nueva = c.copy(fecha = fecha, horario = horario)
+        val nueva = c.copy(fecha = fecha, horario = horario, slotKey = CitaValidation.slotKey(horario), estado = "reprogramada",
+            anio = fecha.take(4).toInt(), mes = fecha.drop(5).take(2).toInt(), dia = fecha.takeLast(2).toInt(),
+            inicioEn = CitaValidation.inicioMillis(fecha, horario) ?: return Result.failure(IllegalArgumentException("Fecha inválida")), asistenciaConfirmada = false)
         return escribir(mapOf(
-            "citas/${c.uid}/${c.id}/fecha" to fecha,
-            "citas/${c.uid}/${c.id}/horario" to horario,
-            "citas/${c.uid}/${c.id}/estado" to "reprogramada",
+            "citas/${c.uid}/${c.id}" to nueva,
             slot(c) to null,
-            slot(nueva) to c.uid))
+            slot(nueva) to ocupacion(nueva)))
     }
 
     suspend fun citasPaciente(uid: String) = safe {
@@ -60,9 +66,9 @@ class CitaRepository {
     }
 
     // Para el dentista. Lee todo "citas" (permitido al personal); en una clínica pequeña basta.
-    suspend fun agendaDentista(dentistaId: String) = safe {
+    suspend fun agendaDentista(dentistaId: String, todos: Boolean = false) = safe {
         ordenar(db.child("citas").get().await().children.flatMap { u ->
             u.children.mapNotNull { it.getValue(Cita::class.java)?.copy(id = it.key.orEmpty(), uid = u.key.orEmpty()) }
-        }.filter { it.dentistaId == dentistaId })
+        }.filter { todos || it.dentistaId == dentistaId })
     }
 }

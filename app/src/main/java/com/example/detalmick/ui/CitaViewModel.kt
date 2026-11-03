@@ -12,6 +12,9 @@ data class Aviso(val texto: String, val error: Boolean)
 
 data class CitasState(
     val loading: Boolean = false,
+    val staff: Boolean = false,
+    val pacientes: List<Opcion> = emptyList(),
+    val nombrePaciente: String = "",
     val servicios: List<Opcion> = emptyList(),
     val dentistas: List<Opcion> = emptyList(),
     val catalogoCargado: Boolean = false,
@@ -45,11 +48,19 @@ class CitaViewModel : ViewModel() {
     }
 
     fun cargarCitas(esStaff: Boolean) {
-        staff = esStaff
         val id = uid() ?: return
         viewModelScope.launch {
             _state.value = s.copy(loading = true, errorCarga = null)
-            val r = if (staff) repo.agendaDentista(id) else repo.citasPaciente(id)
+            val role = repo.rol(id).getOrElse {
+                _state.value=s.copy(loading=false,errorCarga="No se pudo verificar tu sesión."); return@launch
+            }
+            if(!AccessControl.active(role)) { AccessControl.denied("agenda_denegada"); _state.value=s.copy(loading=false,citas=emptyList(),errorCarga="Cuenta suspendida."); return@launch }
+            staff=AccessControl.staff(role)
+            val todos=role.child("admin").value==true || AccessControl.reception(role)
+            val patients=if(staff) repo.pacientes().getOrDefault(emptyList()) else emptyList()
+            val patientName=if(!staff) repo.nombrePaciente(id).getOrDefault("") else ""
+            _state.value=s.copy(staff=staff,pacientes=patients,nombrePaciente=patientName)
+            val r = if (staff) repo.agendaDentista(id,todos) else repo.citasPaciente(id)
             _state.value = r.fold(
                 { s.copy(loading = false, citas = it, citasCargadas = true) },
                 { s.copy(loading = false, errorCarga = mensaje(it)) })
@@ -73,12 +84,15 @@ class CitaViewModel : ViewModel() {
             .onFailure { _state.value = s.copy(loading = false, aviso = Aviso(mensaje(it), true)) }
     }
 
-    fun agendar(paciente: String, sv: Opcion, dn: Opcion, fecha: String, horario: String) {
-        val id = uid() ?: run { aviso("Tu sesión expiró. Vuelve a iniciar sesión."); return }
+    fun agendar(paciente: String, sv: Opcion, dn: Opcion, fecha: String, horario: String, patientId: String = "") {
+        val ownId = uid() ?: run { aviso("Tu sesión expiró. Vuelve a iniciar sesión."); return }
+        val id = if(staff) patientId else ownId
+        if(id.isBlank() || (staff && s.pacientes.none { it.id==id })) { aviso("Selecciona un paciente."); return }
         if (!CitaValidation.validarServicio(sv.id) || !CitaValidation.validarFechaHorario(fecha, horario)) {
             aviso("Elige un servicio y un horario futuro válido (no domingos)."); return
         }
-        val cita = Cita(UUID.randomUUID().toString(), id, paciente, dn.id, dn.nombre, sv.id, sv.nombre, fecha, horario)
+        val cita = Cita(UUID.randomUUID().toString(), id, paciente, dn.id, dn.nombre, sv.id, sv.nombre, fecha, horario,
+            inicioEn = CitaValidation.inicioMillis(fecha, horario)!!)
         ejecutar("Cita confirmada para el $fecha a las ${horario.take(5)}.", dn.id, fecha) { repo.agendar(cita) }
     }
 
@@ -91,9 +105,12 @@ class CitaViewModel : ViewModel() {
 
     fun cancelar(c: Cita) = ejecutar("Cita cancelada.", c.dentistaId, c.fecha) { repo.cancelar(c) }
 
+    fun confirmar(c: Cita) = ejecutar("Asistencia confirmada.", c.dentistaId, c.fecha) { repo.confirmar(c) }
+
     private fun aviso(t: String) { _state.value = s.copy(aviso = Aviso(t, true)) }
 
     private fun ejecutar(ok: String, dentistaId: String, fecha: String, op: suspend () -> Result<Unit>) {
+        if (s.loading) return
         viewModelScope.launch {
             _state.value = s.copy(loading = true)
             op().onSuccess {

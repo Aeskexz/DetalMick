@@ -6,7 +6,7 @@ data class PatientSummary(val uid: String, val name: String)
 
 data class Treatment(
     val id: String, val titulo: String, val descripcion: String,
-    val estado: String, val fecha: String
+    val estado: String, val fecha: String, val odontologo: String = ""
 ) {
     companion object {
         fun decode(id: String, value: Any?): Treatment {
@@ -17,7 +17,7 @@ data class Treatment(
             val date = value["fecha"] as? String ?: throw IllegalArgumentException("Tratamiento sin fecha")
             require(title.isNotBlank() && title.length <= 120 && description.isNotBlank() && description.length <= 2000)
             require(state in setOf("programado", "realizado") && ClinicalValidation.date(date))
-            return Treatment(id, title, description, state, date)
+            return Treatment(id, title, description, state, date, value["registradoPor"] as? String ?: "")
         }
     }
 }
@@ -25,7 +25,8 @@ data class Treatment(
 data class PaymentEntry(val id: String, val cents: Long, val at: Long)
 data class Payment(
     val id: String, val concepto: String, val totalCentavos: Long,
-    val abonadoCentavos: Long, val fechaLimite: String, val abonos: List<PaymentEntry>
+    val abonadoCentavos: Long, val fechaLimite: String, val abonos: List<PaymentEntry>,
+    val citaId: String = "", val creadoEn: Long = 0
 ) {
     val saldo get() = totalCentavos - abonadoCentavos
     val estado get() = ClinicalValidation.status(totalCentavos, abonadoCentavos)
@@ -46,7 +47,7 @@ data class Payment(
                 PaymentEntry(key.toString(), cents, at)
             }.orEmpty().sortedByDescending { it.at }
             require(entries.sumOf { it.cents } == paid)
-            return Payment(id, concept, total, paid, date, entries)
+            return Payment(id, concept, total, paid, date, entries, value["citaId"] as? String ?: "", value["creadoEn"] as? Long ?: 0)
         }
     }
 }

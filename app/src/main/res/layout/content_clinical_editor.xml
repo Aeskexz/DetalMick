@@ -15,6 +15,7 @@
   <com.google.android.material.textfield.TextInputLayout android:id="@+id/amountInputLayout" android:layout_width="match_parent" android:layout_height="wrap_content" android:hint="Monto en dólares (ej. 25.50)" android:layout_marginBottom="12dp">
     <com.google.android.material.textfield.TextInputEditText android:id="@+id/amountInput" android:layout_width="match_parent" android:layout_height="wrap_content" android:inputType="numberDecimal" android:textSize="18sp" android:maxLength="10" android:singleLine="true" />
   </com.google.android.material.textfield.TextInputLayout>
+  <com.google.android.material.button.MaterialButton android:id="@+id/appointment" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="56dp" android:text="Seleccionar cita de la factura" />
   <TextView android:id="@+id/help" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Usa una explicación sencilla, sin términos técnicos innecesarios." style="@style/Text.DetalMick.Body" android:layout_marginVertical="8dp" />
   <com.google.android.material.button.MaterialButton android:id="@+id/save" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Guardar" />
   <com.google.android.material.button.MaterialButton android:id="@+id/cancel" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="Cancelar" style="@style/Widget.Material3.Button.TextButton" />

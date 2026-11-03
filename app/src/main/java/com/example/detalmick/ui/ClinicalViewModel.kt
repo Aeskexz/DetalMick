@@ -13,7 +13,7 @@ data class ClinicalState(
     val treatments: List<Treatment> = emptyList(), val payments: List<Payment> = emptyList(),
     val loadingTreatments: Boolean = false, val loadingPayments: Boolean = false,
     val treatmentError: String = "", val paymentError: String = "", val error: String = "",
-    val tab: String = "tratamientos", val filter: Int = 0
+    val reception: Boolean = false, val tab: String = "tratamientos", val filter: Int = 0
 )
 
 class ClinicalViewModel : ViewModel() {
@@ -39,8 +39,13 @@ class ClinicalViewModel : ViewModel() {
             if (!it.isSuccessful) {
                 update(current.copy(authorized = false, checking = false, error = "No se pudieron verificar los permisos. Revisa tu conexión y vuelve a intentar."))
             } else {
-                val staff = it.result.value == true
-                update(current.copy(authorized = true, staff = staff, checking = false, loadingPatients = staff))
+                if (it.result.child("activo").value == false) {
+                    update(ClinicalState(checking = false, error = "Cuenta suspendida. Comunícate con la clínica."))
+                    return@addOnCompleteListener
+                }
+                val staff = AccessControl.staff(it.result)
+                val reception = AccessControl.reception(it.result) && !AccessControl.clinical(it.result)
+                update(current.copy(authorized = true, staff = staff, reception = reception, tab = if(reception) "pagos" else current.tab, checking = false, loadingPatients = staff))
                 if (staff) observePatients() else selectPatient(user.uid, "Mi información")
             }
         }
@@ -52,7 +57,7 @@ class ClinicalViewModel : ViewModel() {
         directory?.let { it.first.removeEventListener(it.second) }; directory = null
     }
     fun refresh() { stop(); start() }
-    fun tab(tab: String) { update(current.copy(tab = tab, filter = 0)) }
+    fun tab(tab: String) { update(current.copy(tab = if(current.reception) "pagos" else tab, filter = 0)) }
     fun filter(filter: Int) { if (current.filter != filter) update(current.copy(filter = filter)) }
 
     private fun observePatients() {
@@ -112,7 +117,8 @@ class ClinicalViewModel : ViewModel() {
         }
         subscriptions += treatmentRef to treatmentListener
         subscriptions += paymentRef to paymentListener
-        treatmentRef.addValueEventListener(treatmentListener)
+        if (!current.reception) treatmentRef.addValueEventListener(treatmentListener)
+        else update(current.copy(loadingTreatments=false))
         paymentRef.addValueEventListener(paymentListener)
     }
     private fun clearPatient() { subscriptions.forEach { it.first.removeEventListener(it.second) }; subscriptions.clear() }

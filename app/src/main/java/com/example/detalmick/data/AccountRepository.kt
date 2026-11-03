@@ -22,11 +22,16 @@ class AccountRepository {
     fun profile(uid: String, staff: Boolean = false): Task<DataSnapshot> = Tasks.withTimeout(
         database.getReference(if (staff) "dentistas" else "usuarios").child(uid).get(), 15, TimeUnit.SECONDS)
 
-    fun save(uid: String, profile: PatientProfile, staff: Boolean = false): Task<Void> = Tasks.withTimeout(
-        database.getReference(if (staff) "dentistas" else "usuarios").child(uid).updateChildren(
-            mapOf("nombre" to profile.nombre, "telefono" to profile.telefono,
-                "direccion" to profile.direccion, "especialidad" to profile.especialidad)
-        ), 15, TimeUnit.SECONDS)
+    fun save(uid: String, profile: PatientProfile, staff: Boolean = false, publishDentist: Boolean = true): Task<Void> {
+        val path = "${if (staff) "dentistas" else "usuarios"}/$uid"
+        val changes = mutableMapOf<String, Any?>("$path/nombre" to profile.nombre,
+            "$path/telefono" to profile.telefono, "$path/direccion" to profile.direccion)
+        if (staff) {
+            changes["$path/especialidad"] = profile.especialidad
+            if (publishDentist) changes["clinica/dentistas/$uid"] = mapOf("nombre" to profile.nombre, "especialidad" to profile.especialidad)
+        }
+        return Tasks.withTimeout(database.reference.updateChildren(changes), 15, TimeUnit.SECONDS)
+    }
 
     fun role(uid: String): Task<DataSnapshot> = Tasks.withTimeout(
         database.getReference("roles").child(uid).get(), 15, TimeUnit.SECONDS)

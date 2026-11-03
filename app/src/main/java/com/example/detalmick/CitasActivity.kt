@@ -1,6 +1,12 @@
 package com.example.detalmick
 
 import android.os.Bundle
+import android.Manifest
+import android.os.Build
+import android.content.Intent
+import android.provider.Settings
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationManagerCompat
 import android.widget.ArrayAdapter
 import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
@@ -28,13 +34,14 @@ import java.util.Locale
 import java.util.TimeZone
 import com.example.detalmick.ui.CitasState
 import com.example.detalmick.domain.CitaValidation
-class CitasActivity : AppCompatActivity() {
+class CitasActivity : AccessibleActivity() {
     private enum class Vista { LISTA, AGENDAR }
 
     private lateinit var shell: ActivityMainBinding
     private lateinit var model: CitaViewModel
     private var staff = false
     private var nombre = ""
+    private var patientId = ""
     private var vista = Vista.LISTA
     private var lista: ContentCitasListaBinding? = null
     private var form: ContentAgendarCitaBinding? = null
@@ -45,6 +52,9 @@ class CitasActivity : AppCompatActivity() {
     private var fecha = ""
     private var horario = ""
     private var editando: Cita? = null
+    private val permission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        Snackbar.make(shell.root, if (granted) "Recordatorios activados en este teléfono." else "Puedes activar los recordatorios desde los ajustes del teléfono.", Snackbar.LENGTH_LONG).show()
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); enableEdgeToEdge()
@@ -61,11 +71,18 @@ class CitasActivity : AppCompatActivity() {
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() = atras()
         })
-        mostrarLista()
+        if(savedInstanceState?.getBoolean("booking")==true) {
+            paso=savedInstanceState.getInt("step",1); fecha=savedInstanceState.getString("date").orEmpty(); horario=savedInstanceState.getString("time").orEmpty()
+            servicio=savedInstanceState.getSerializable("service") as? Opcion; dentista=savedInstanceState.getSerializable("dentist") as? Opcion
+            editando=savedInstanceState.getSerializable("editing") as? Cita; patientId=savedInstanceState.getString("patientId").orEmpty(); nombre=savedInstanceState.getString("patientName").orEmpty()
+            mostrarFormulario()
+        } else mostrarLista()
         model.cargarCitas(staff)
     }
 
     private fun render(s: CitasState) {
+        staff = s.staff
+        if(!staff && s.nombrePaciente.isNotBlank()) nombre=s.nombrePaciente
         shell.loadingGroup.isVisible = s.loading
         s.aviso?.let { Snackbar.make(shell.root, it.texto, Snackbar.LENGTH_LONG).show(); model.limpiarAviso() }
         if (s.operacionOk && vista == Vista.AGENDAR) mostrarLista()
@@ -87,15 +104,34 @@ class CitasActivity : AppCompatActivity() {
         shell.content.removeAllViews()
         val b = ContentCitasListaBinding.inflate(layoutInflater, shell.content, true)
         lista = b
+        b.btnNotificaciones.isVisible = !staff
+        b.btnNotificaciones.setOnClickListener {
+            if (Build.VERSION.SDK_INT >= 33 && !NotificationManagerCompat.from(this).areNotificationsEnabled()) permission.launch(Manifest.permission.POST_NOTIFICATIONS)
+            else if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) startActivity(Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE,packageName))
+            else Snackbar.make(shell.root,"Recordatorios locales activos: 24 horas y 1 hora antes. Android puede retrasarlos en ahorro de batería.",Snackbar.LENGTH_LONG).show()
+        }
+        com.example.detalmick.data.FirebaseProvider.database.getReference("clinica/direccion").get().addOnSuccessListener {
+            b.tvUbicacion.text = "Ubicación: " + ((it.value as? String)?.ifBlank { null } ?: "Consulta la dirección en Clínica y ayuda.")
+        }
         b.tvTitulo.text = if (staff) "Agenda del dentista" else "Mis citas"
-        b.btnAgendarNuevaCita.isVisible = !staff
-        b.btnAgendarNuevaCita.setOnClickListener { iniciarAgendar() }
+        b.btnAgendarNuevaCita.setOnClickListener {
+            if(!staff) iniciarAgendar() else {
+                val patients=model.state.value?.pacientes.orEmpty()
+                if(patients.isEmpty()) Snackbar.make(shell.root,"Aún no hay pacientes disponibles.",Snackbar.LENGTH_LONG).show()
+                else MaterialAlertDialogBuilder(this).setTitle("Paciente de la cita").setItems(patients.map { it.nombre }.toTypedArray()) { _,index ->
+                    patientId=patients[index].id; nombre=patients[index].nombre; iniciarAgendar()
+                }.show()
+            }
+        }
         b.btnReintentar.setOnClickListener { model.cargarCitas(staff) }
         b.btnVolver.setOnClickListener { finish() }
         model.state.value?.let { pintarLista(b, it) }
     }
 
     private fun pintarLista(b: ContentCitasListaBinding, s: CitasState) {
+        b.tvTitulo.text=if(staff) "Agenda de la clínica" else "Mis citas y recordatorios"
+        b.btnNotificaciones.isVisible=!staff
+        b.btnAgendarNuevaCita.isEnabled=!s.loading
         val proxima = s.citas.firstOrNull { CitaValidation.esActiva(it) }
         b.tvProximaCita.text = proxima?.let { "${it.servicioNombre}\n${it.fecha} · ${it.horario}\n" + quien(it) }
             ?: if (staff) "No hay citas próximas en tu agenda." else "No tienes citas próximas."
@@ -108,7 +144,13 @@ class CitasActivity : AppCompatActivity() {
             item.tvTitulo.text = c.servicioNombre
             item.tvDetalle.text = "${c.fecha} · ${c.horario}\n${quien(c)}"
             item.tvEstado.text = c.estado.replaceFirstChar { it.uppercase() }
+            item.btnConfirmarAsistencia.isVisible = !staff && CitaValidation.esActiva(c)
+            item.btnConfirmarAsistencia.text = if (c.asistenciaConfirmada) "Asistencia confirmada" else "Confirmar asistencia"
+            item.btnConfirmarAsistencia.isEnabled = !s.loading && !c.asistenciaConfirmada
+            item.btnConfirmarAsistencia.setOnClickListener { model.confirmar(c) }
             item.filaAcciones.isVisible = CitaValidation.esActiva(c)
+            item.btnCancelar.isEnabled = !s.loading
+            item.btnReprogramar.isEnabled = !s.loading
             item.btnReprogramar.setOnClickListener { iniciarReprogramar(c) }
             item.btnCancelar.setOnClickListener { confirmarCancelacion(c) }
             b.listaCitas.addView(item.root)
@@ -147,6 +189,7 @@ class CitasActivity : AppCompatActivity() {
             val sv = st.servicios.getOrNull(b.spinnerServicios.selectedItemPosition)
             val dn = st.dentistas.getOrNull(b.spinnerDentistas.selectedItemPosition)
             if (sv == null || dn == null) { Snackbar.make(shell.root, "Elige un servicio y un dentista.", Snackbar.LENGTH_SHORT).show(); return@setOnClickListener }
+            if(dentista?.id != dn.id) { horario=""; if(fecha.isNotBlank()) model.cargarOcupados(dn.id,fecha) }
             servicio = sv; dentista = dn; paso = 2; mostrarPaso()
         }
         b.btnElegirFecha.setOnClickListener { elegirFecha() }
@@ -160,7 +203,7 @@ class CitasActivity : AppCompatActivity() {
             val sv = servicio ?: return@setOnClickListener
             val dn = dentista ?: return@setOnClickListener
             val c = editando
-            if (c == null) model.agendar(nombre, sv, dn, fecha, horario) else model.reprogramar(c, fecha, horario)
+            if (c == null) model.agendar(nombre, sv, dn, fecha, horario, patientId) else model.reprogramar(c, fecha, horario)
         }
         mostrarPaso()
         if (editando == null && model.state.value?.catalogoCargado != true) model.cargarCatalogo()
@@ -190,6 +233,15 @@ class CitasActivity : AppCompatActivity() {
         }
         if (paso == 2) pintarHorarios(b, s)
         b.btnConfirmarCita.isEnabled = !s.loading
+        b.btnElegirFecha.isEnabled = !s.loading
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("booking",vista==Vista.AGENDAR); outState.putInt("step",paso)
+        outState.putString("date",fecha); outState.putString("time",horario); outState.putSerializable("service",servicio)
+        outState.putSerializable("dentist",dentista); outState.putSerializable("editing",editando)
+        outState.putString("patientId",patientId); outState.putString("patientName",nombre)
     }
 
     private fun elegirFecha() {

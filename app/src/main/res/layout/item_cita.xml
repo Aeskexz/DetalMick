@@ -6,10 +6,11 @@
     <TextView android:id="@+id/tvTitulo" style="@style/Text.DetalMick.Body" android:textStyle="bold" android:layout_width="match_parent" android:layout_height="wrap_content" />
     <TextView android:id="@+id/tvDetalle" style="@style/Text.DetalMick.Body" android:textSize="14sp" android:layout_width="match_parent" android:layout_height="wrap_content" />
     <TextView android:id="@+id/tvEstado" style="@style/Text.DetalMick.Body" android:textSize="13sp" android:textColor="@color/primary" android:layout_width="match_parent" android:layout_height="wrap_content" />
-    <LinearLayout android:id="@+id/filaAcciones" android:orientation="horizontal" android:layout_width="match_parent" android:layout_height="wrap_content">
+    <com.google.android.material.button.MaterialButton android:id="@+id/btnConfirmarAsistencia" android:text="Confirmar asistencia" android:minHeight="56dp" android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <LinearLayout android:id="@+id/filaAcciones" android:orientation="vertical" android:layout_width="match_parent" android:layout_height="wrap_content">
         <com.google.android.material.button.MaterialButton android:id="@+id/btnReprogramar" style="@style/Widget.Material3.Button.TextButton"
-            android:text="Reprogramar" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" />
+            android:text="Reprogramar" android:layout_width="match_parent" android:layout_height="wrap_content" />
         <com.google.android.material.button.MaterialButton android:id="@+id/btnCancelar" style="@style/Widget.Material3.Button.TextButton"
-            android:text="Cancelar" android:layout_width="0dp" android:layout_weight="1" android:layout_height="wrap_content" />
+            android:text="Cancelar" android:layout_width="match_parent" android:layout_height="wrap_content" />
     </LinearLayout>
 </LinearLayout>

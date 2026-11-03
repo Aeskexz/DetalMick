@@ -28,6 +28,7 @@ data class AccountState(
     val profileSaved: Boolean = false,
     val staff: Boolean = false,
     val admin: Boolean = false,
+    val reception: Boolean = false,
     val mustChangePassword: Boolean = false,
     val email: String = "",
     val portal: AccessPortal = AccessPortal.PATIENT
@@ -125,7 +126,8 @@ class AccountViewModel : ViewModel() {
                 rejectAccess("Esta cuenta ha sido deshabilitada por la administración. Comunícate con la clínica.")
                 return@roleComplete
             }
-            val isStaff = role.result.child("personal").value == true || role.result.value == true
+            val reception = role.result.child("recepcionista").value == true
+            val isStaff = role.result.child("personal").value == true || reception
             val isAdmin = role.result.child("admin").value == true
             val mustChangePassword = isStaff && role.result.child("primerIngreso").value == true
             val portal = when {
@@ -133,7 +135,7 @@ class AccountViewModel : ViewModel() {
                 isStaff -> AccessPortal.DENTIST
                 else -> AccessPortal.PATIENT
             }
-            update(current.copy(staff = isStaff || isAdmin, admin = isAdmin,
+            update(current.copy(staff = isStaff || isAdmin, admin = isAdmin, reception = reception,
                 mustChangePassword = mustChangePassword, portal = portal, email = user.email.orEmpty(),
                 screen = if (mustChangePassword) Screen.PROFILE else Screen.HOME,
                 message = if (mustChangePassword) "Cambia tu contraseña temporal para continuar." else ""))
@@ -160,7 +162,7 @@ class AccountViewModel : ViewModel() {
                     return@addOnCompleteListener
                 }
                 val fallback = if (staff) PatientProfile(repository.auth.currentUser?.email?.substringBefore('@').orEmpty()) else PatientProfile()
-                val needsProfile = profile == null || profile.nombre.isBlank() || (staff && (profile.nombre == "Dr/Dra. Invitado" || profile.especialidad.isBlank()))
+                val needsProfile = profile == null || profile.nombre.isBlank() || (staff && !current.reception && (profile.nombre == "Dr/Dra. Invitado" || profile.especialidad.isBlank()))
                 val mustChangePassword = current.mustChangePassword
                 update(current.copy(busy = false,
                     screen = if (needsProfile || mustChangePassword) Screen.PROFILE else Screen.HOME,
@@ -195,7 +197,7 @@ class AccountViewModel : ViewModel() {
         val mustChangePassword = current.mustChangePassword
 
         fun saveProfile() {
-            repository.save(uid, profile, current.staff).addOnCompleteListener profileComplete@ { saved ->
+            repository.save(uid, profile, current.staff, !current.reception).addOnCompleteListener profileComplete@ { saved ->
                 if (operation != generation) return@profileComplete
                 if (!saved.isSuccessful) {
                     fail(if (saved.exception is TimeoutException)

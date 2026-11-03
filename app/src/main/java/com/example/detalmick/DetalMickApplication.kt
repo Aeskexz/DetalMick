@@ -7,5 +7,6 @@ class DetalMickApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         FirebaseProvider.initialize(this)
+        AppointmentReminders.start(this)
     }
 }

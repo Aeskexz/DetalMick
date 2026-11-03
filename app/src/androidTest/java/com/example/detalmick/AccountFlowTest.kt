@@ -92,5 +92,7 @@ class AccountFlowTest {
         val bitmap = instrumentation.uiAutomation.takeScreenshot()
         File(directory, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         bitmap.recycle()
+        val command="mkdir -p /sdcard/Download/DetalMick-evidence; cp '${File(directory,"$name.png").absolutePath}' /sdcard/Download/DetalMick-evidence/$name.png"
+        android.os.ParcelFileDescriptor.AutoCloseInputStream(instrumentation.uiAutomation.executeShellCommand(command)).use { it.readBytes() }
     }
 }

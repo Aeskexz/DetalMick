@@ -20,7 +20,7 @@ import com.example.detalmick.domain.Validation
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 
-class AdminActivity : AppCompatActivity() {
+class AdminActivity : AccessibleActivity() {
 
     private lateinit var binding: ActivityAdminBinding
     private val repository = AdminRepository()
@@ -39,9 +39,20 @@ class AdminActivity : AppCompatActivity() {
 
         binding.btnBack.setOnClickListener { finish() }
         binding.btnNuevoDentista.setOnClickListener { showInviteDentistDialog() }
+        val management = com.google.android.material.button.MaterialButton(this).apply {
+            text="Ingresos, inventario y auditoría"
+            setOnClickListener { startActivity(android.content.Intent(this@AdminActivity,ManagementActivity::class.java)) }
+        }
+        binding.root.addView(management,2)
 
-        loadDentists()
+        val uid=com.example.detalmick.data.FirebaseProvider.auth.currentUser?.uid ?: run { finish(); return }
+        com.example.detalmick.data.FirebaseProvider.database.getReference("roles/$uid").get().addOnCompleteListener {
+            if(it.isSuccessful && it.result.child("admin").value==true && com.example.detalmick.data.AccessControl.active(it.result)) loadDentists()
+            else { com.example.detalmick.data.AccessControl.denied("administracion_denegada"); finish() }
+        }
     }
+
+    override fun onDestroy() { repository.stop(); super.onDestroy() }
 
     private fun loadDentists() {
         binding.progressBar.isVisible = true
@@ -144,14 +155,14 @@ class AdminActivity : AppCompatActivity() {
     private fun confirmDelete(dentist: AdminDentist) {
         if (dentist.isAdmin) return
         MaterialAlertDialogBuilder(this)
-            .setTitle("Eliminar cuenta de dentista")
-            .setMessage("Se eliminará ${dentist.name}, su perfil, sus permisos y su acceso a la aplicación. Esta acción no se puede deshacer.")
+            .setTitle("Retirar acceso del profesional")
+            .setMessage("Se suspenderá el acceso de ${dentist.name} y se retirará del catálogo. Su cuenta y el historial clínico se conservan. Puedes habilitarlo nuevamente.")
             .setNegativeButton("Cancelar", null)
-            .setPositiveButton("Eliminar") { _, _ ->
+            .setPositiveButton("Retirar acceso") { _, _ ->
                 binding.progressBar.isVisible = true
                 repository.deleteDentist(dentist.uid) { success, error ->
                     binding.progressBar.isVisible = false
-                    if (success) Snackbar.make(binding.root, "Cuenta eliminada.", Snackbar.LENGTH_LONG).show()
+                    if (success) Snackbar.make(binding.root, "Acceso retirado. Se conserva el historial.", Snackbar.LENGTH_LONG).show()
                     else Snackbar.make(binding.root, "No se pudo eliminar: ${error ?: "Error desconocido"}", Snackbar.LENGTH_LONG).show()
                 }
             }.show()
@@ -165,6 +176,8 @@ class AdminActivity : AppCompatActivity() {
 
     private fun showInviteDentistDialog() {
         val dialogBinding = DialogCreateDentistBinding.inflate(LayoutInflater.from(this))
+        val reception = com.google.android.material.checkbox.MaterialCheckBox(this).apply { text = "Cuenta de recepcionista (sin acceso clínico)" }
+        dialogBinding.root.addView(reception)
         var currentPass = generateRandomPassword()
         dialogBinding.tvGeneratedPassword.text = currentPass
 
@@ -191,7 +204,7 @@ class AdminActivity : AppCompatActivity() {
                         binding.progressBar.isVisible = true
                         dialog.dismiss()
 
-                        repository.inviteDentist(this, email, currentPass) { success, error ->
+                        repository.inviteDentist(this, email, currentPass, reception.isChecked) { success, error ->
                             binding.progressBar.isVisible = false
                             if (success) {
                                 showCredentialsSuccessDialog(email, currentPass)

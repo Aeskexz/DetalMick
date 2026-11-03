@@ -23,13 +23,14 @@ import com.google.android.material.textfield.TextInputLayout
 import java.util.Calendar
 import java.util.Locale
 
-class ClinicalEditorActivity : AppCompatActivity() {
+class ClinicalEditorActivity : AccessibleActivity() {
     private lateinit var shell: ActivityMainBinding
     private lateinit var binding: ContentClinicalEditorBinding
     private lateinit var model: ClinicalEditorViewModel
     private var initialized = false
     private var initialValues = emptyList<String>()
     private var treatmentStatus = "programado"
+    private var selectedAppointment = ""
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState); enableEdgeToEdge()
@@ -45,7 +46,14 @@ class ClinicalEditorActivity : AppCompatActivity() {
                 intent.getStringExtra("patient").orEmpty(), intent.getStringExtra("mode").orEmpty(),
                 intent.getStringExtra("record").orEmpty(), intent.getStringExtra("operation").orEmpty()) as T
         })[ClinicalEditorViewModel::class.java]
+        selectedAppointment = savedInstanceState?.getString("selectedAppointment").orEmpty()
         binding.status.setOnClickListener { chooseStatus() }
+        binding.appointment.setOnClickListener {
+            val citas=model.state.value?.citas.orEmpty()
+            MaterialAlertDialogBuilder(this).setTitle("Cita de la factura").setItems(citas.map { "${it.fecha} ${it.horario.take(5)} · ${it.servicioNombre}" }.toTypedArray()) { _,index ->
+                selectedAppointment=citas[index].id; binding.appointment.text="Cita: ${citas[index].fecha} ${citas[index].horario.take(5)}"
+            }.show()
+        }
         binding.dateInputLayout.endIconMode = TextInputLayout.END_ICON_CUSTOM
         binding.dateInputLayout.setEndIconDrawable(android.R.drawable.ic_menu_my_calendar)
         binding.dateInputLayout.endIconContentDescription = "Elegir fecha"
@@ -57,7 +65,7 @@ class ClinicalEditorActivity : AppCompatActivity() {
                 (parts.getOrNull(2) ?: now.get(Calendar.DAY_OF_MONTH)).coerceIn(1, 31)).show()
         }
         binding.save.setOnClickListener { model.submit(binding.titleInput.text.toString(), binding.descriptionInput.text.toString(),
-            if (binding.status.text.toString() == "Realizado") "realizado" else "programado", binding.dateInput.text.toString(), binding.amountInput.text.toString()) }
+            if (binding.status.text.toString() == "Realizado") "realizado" else "programado", binding.dateInput.text.toString(), binding.amountInput.text.toString(), selectedAppointment) }
         binding.cancel.setOnClickListener { cancel() }
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) { override fun handleOnBackPressed() { cancel() } })
         model.state.observe(this, ::render)
@@ -72,6 +80,7 @@ class ClinicalEditorActivity : AppCompatActivity() {
         shell.message.setTextColor(getColor(R.color.error))
         binding.title.text = when (model.mode) { "cargo" -> "Registrar cargo"; "abono" -> "Registrar abono"; else -> if (model.record.isEmpty()) "Registrar tratamiento" else "Actualizar tratamiento" }
         binding.patient.text = "Paciente: ${state.patientName}"
+        binding.appointment.isVisible = model.mode == "cargo"
         binding.descriptionInputLayout.isVisible = model.mode == "tratamiento"
         binding.status.isVisible = model.mode == "tratamiento"
         binding.titleInputLayout.isVisible = model.mode != "abono"
@@ -94,6 +103,7 @@ class ClinicalEditorActivity : AppCompatActivity() {
         enable(binding.root, !state.busy)
         binding.save.isEnabled = state.ready && !state.busy
     }
+    override fun onSaveInstanceState(out: Bundle) { super.onSaveInstanceState(out); out.putString("selectedAppointment",selectedAppointment) }
     private fun enable(view: View, enabled: Boolean) {
         view.isEnabled = enabled
         if (view is ViewGroup) for (index in 0 until view.childCount) enable(view.getChildAt(index), enabled)

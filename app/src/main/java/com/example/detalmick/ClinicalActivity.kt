@@ -23,7 +23,7 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 
-class ClinicalActivity : AppCompatActivity() {
+class ClinicalActivity : AccessibleActivity() {
     private lateinit var shell: ActivityMainBinding
     private lateinit var binding: ContentClinicalBinding
     private lateinit var model: ClinicalViewModel
@@ -49,6 +49,7 @@ class ClinicalActivity : AppCompatActivity() {
         binding.create.setOnClickListener { edit(if (model.state.value?.tab == "pagos") "cargo" else "tratamiento") }
         binding.refresh.setOnClickListener { model.refresh() }
         binding.back.setOnClickListener { finish() }
+        binding.patientRecord.setOnClickListener { model.state.value?.let { startActivity(Intent(this, PatientRecordActivity::class.java).putExtra("patient",it.patientId)) } }
         model.state.observe(this, ::render)
     }
     override fun onStart() { super.onStart(); model.start() }
@@ -90,7 +91,8 @@ class ClinicalActivity : AppCompatActivity() {
         shell.message.setTextColor(getColor(R.color.error))
         binding.create.isVisible = state.authorized && state.staff && state.patientId.isNotEmpty() && !loading && error.isBlank()
         binding.create.text = if (treatments) "Registrar tratamiento" else "Registrar cargo"
-        binding.tabs.isVisible = state.authorized
+        binding.tabs.isVisible = state.authorized && !state.reception
+        binding.patientRecord.isVisible = state.authorized && !state.reception && state.patientId.isNotBlank()
         binding.filterSelect.isVisible = state.authorized && state.patientId.isNotEmpty()
         binding.records.removeAllViews()
         val recordsVisible = state.authorized && !loading && error.isBlank() && state.patientId.isNotBlank()
@@ -134,7 +136,7 @@ class ClinicalActivity : AppCompatActivity() {
     }
     private fun treatmentDetail(record: Treatment, staff: Boolean) {
         val dialog = MaterialAlertDialogBuilder(this).setTitle(record.titulo)
-            .setMessage("${if (record.estado == "realizado") "Tratamiento realizado" else "Tratamiento programado"}\nFecha: ${Format.displayDate(record.fecha)}\n\n${record.descripcion}")
+            .setMessage("${if (record.estado == "realizado") "Tratamiento realizado" else "Tratamiento programado"}\nFecha: ${Format.displayDate(record.fecha)}\nProfesional (ID): ${record.odontologo}\n\n${record.descripcion}")
             .setNegativeButton("Cerrar", null)
         if (staff) dialog.setPositiveButton("Actualizar tratamiento") { _, _ -> edit("tratamiento", record.id) }
         dialog.show()
@@ -148,40 +150,15 @@ class ClinicalActivity : AppCompatActivity() {
                 "Estado: ${if (payment.saldo == 0L) "Pagado" else "Pendiente"}\nFecha límite: ${Format.displayDate(payment.fechaLimite)}\n\nHistorial de abonos\n$history")
             .setNegativeButton("Cerrar", null)
         if (staff && payment.saldo > 0) dialog.setPositiveButton("Registrar abono") { _, _ -> edit("abono", payment.id) }
-        if (!staff && payment.saldo > 0) dialog.setPositiveButton("Pagar") { _, _ -> paymentForm(payment.id) }
+        if (!staff && payment.saldo > 0) dialog.setPositiveButton("Consultar cómo pagar") { _, _ -> startActivity(Intent(this, ClinicActivity::class.java)) }
+        dialog.setNeutralButton("Ver factura") { _, _ -> showInvoice(payment) }
         dialog.show()
     }
-    private fun paymentForm(paymentId: String) {
-        val input = TextInputEditText(this).apply {
-            id = R.id.paymentAmount
-            inputType = android.text.InputType.TYPE_CLASS_NUMBER or android.text.InputType.TYPE_NUMBER_FLAG_DECIMAL
-            textSize = 18f
-            if (android.os.Build.VERSION.SDK_INT >= 26) importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
-        }
-        val layout = TextInputLayout(this).apply {
-            hint = "Ingresa el monto a pagar"
-            val spacing = (24 * resources.displayMetrics.density).toInt()
-            setPadding(spacing, spacing / 2, spacing, 0)
-            addView(input)
-        }
-        val dialog = MaterialAlertDialogBuilder(this).setTitle("Realizar pago")
-            .setView(layout).setNegativeButton("Cancelar", null).setPositiveButton("Pagar", null).create()
-        dialog.setOnShowListener {
-            dialog.getButton(androidx.appcompat.app.AlertDialog.BUTTON_POSITIVE).setOnClickListener {
-                val payment = model.state.value?.payments?.find { it.id == paymentId }
-                val cents = Format.cents(input.text.toString())
-                if (payment == null || cents == null || cents > payment.saldo) {
-                    layout.error = if (payment == null) "Actualiza la consulta antes de continuar."
-                        else "Ingresa un monto mayor que cero y no superior al saldo de ${Format.amount(payment.saldo)}."
-                } else {
-                    dialog.dismiss()
-                    MaterialAlertDialogBuilder(this).setTitle("Pago completado")
-                        .setMessage("Monto: ${Format.amount(cents)}")
-                        .setPositiveButton("Entendido", null).show()
-                }
-            }
-        }
-        dialog.show()
+    private fun showInvoice(payment: Payment) {
+        val issue = if(payment.creadoEn>0) java.text.SimpleDateFormat("dd/MM/yyyy", java.util.Locale.ROOT).format(java.util.Date(payment.creadoEn)) else "Sin fecha registrada"
+        val invoice = "FACTURA BÁSICA - DetalMick\nNúmero: ${payment.id}\nPaciente: ${model.state.value?.patientName}\nCita: ${payment.citaId.ifBlank { "Registro anterior sin cita vinculada" }}\nEmisión: $issue\nConcepto: ${payment.concepto}\nTotal: ${Format.amount(payment.totalCentavos)}\nAbonado: ${Format.amount(payment.abonadoCentavos)}\nSaldo: ${Format.amount(payment.saldo)}\nEstado: ${payment.estado}\nFecha límite: ${Format.displayDate(payment.fechaLimite)}\n\nComprobante académico; no es un documento tributario electrónico."
+        MaterialAlertDialogBuilder(this).setTitle("Factura de la cita").setMessage(invoice).setNegativeButton("Cerrar",null)
+            .setPositiveButton("Compartir") { _, _ -> startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT,invoice),"Compartir factura")) }.show()
     }
     private fun edit(mode: String, id: String = "") {
         val state = model.state.value ?: return

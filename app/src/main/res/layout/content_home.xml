@@ -100,6 +100,13 @@
       android:layout_marginTop="8dp" />
 
   <com.google.android.material.button.MaterialButton
+      android:id="@+id/clinic"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:minHeight="56dp"
+      android:text="Clínica, contacto y accesibilidad" />
+
+  <com.google.android.material.button.MaterialButton
       android:id="@+id/logout"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"

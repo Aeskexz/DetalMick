@@ -4,6 +4,7 @@ import com.example.detalmick.data.Cita
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
+import java.util.TimeZone
 
 object CitaValidation {
     val HORARIOS = (9..16).map { "%02d:00 - %02d:00".format(Locale.ROOT, it, it + 1) }
@@ -11,12 +12,16 @@ object CitaValidation {
     fun slotKey(horario: String) = horario.take(5).replace(":", "")
     fun validarServicio(id: String) = id.isNotBlank()
 
+    fun inicioMillis(fecha: String, horario: String): Long? = inicio(fecha, horario)?.timeInMillis
+
     private fun inicio(fecha: String, horario: String): Calendar? {
+        if (!fecha.matches(Regex("\\d{4}-\\d{2}-\\d{2}")) || horario !in HORARIOS) return null
+        val zona = TimeZone.getTimeZone("America/El_Salvador")
         val dia = (try {
-            SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply { isLenient = false }.parse(fecha)
+            SimpleDateFormat("yyyy-MM-dd", Locale.ROOT).apply { isLenient = false; timeZone = zona }.parse(fecha)
         } catch (e: Exception) { null }) ?: return null
         val hora = horario.take(2).toIntOrNull() ?: return null
-        return Calendar.getInstance().apply { time = dia; set(Calendar.HOUR_OF_DAY, hora); set(Calendar.MINUTE, 0) }
+        return Calendar.getInstance(zona).apply { time = dia; set(Calendar.HOUR_OF_DAY, hora); set(Calendar.MINUTE, 0); set(Calendar.SECOND, 0); set(Calendar.MILLISECOND, 0) }
     }
 
     fun esActiva(c: Cita) =
