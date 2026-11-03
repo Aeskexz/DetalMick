@@ -1,6 +1,6 @@
 package com.example.detalmick.domain
 
-enum class AccessPortal { PATIENT, DENTIST }
+enum class AccessPortal { PATIENT, DENTIST, ADMIN }
 
 object DentistIdentity {
     // Reserved domain: this is a technical login identifier, never an email delivery address.

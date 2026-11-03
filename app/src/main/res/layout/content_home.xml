@@ -92,6 +92,14 @@
       android:layout_marginTop="8dp" />
 
   <com.google.android.material.button.MaterialButton
+      android:id="@+id/adminPanel"
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:text="Panel de administración"
+      android:visibility="gone"
+      android:layout_marginTop="8dp" />
+
+  <com.google.android.material.button.MaterialButton
       android:id="@+id/logout"
       android:layout_width="match_parent"
       android:layout_height="wrap_content"

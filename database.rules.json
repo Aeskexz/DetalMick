@@ -3,13 +3,18 @@
     ".read": false,
     ".write": false,
     "roles": {
+      ".read": "auth != null && (root.child('roles').child(auth.uid).child('admin').val() === true || root.child('roles').child(auth.uid).child('personal').val() === true)",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": false
+        ".write": "auth != null && root.child('roles').child(auth.uid).child('admin').val() === true",
+        "primerIngreso": {
+          ".write": "auth != null && auth.uid === $uid && data.val() === true && newData.val() === false",
+          ".validate": "newData.isBoolean()"
+        }
       }
     },
     "usuarios": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)",
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
         ".write": "auth != null && auth.uid === $uid && root.child('roles').child(auth.uid).child('personal').val() !== true && newData.exists()",
@@ -179,10 +184,10 @@
       }
     },
     "dentistas": {
-      ".read": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true",
+      ".read": "auth != null && (root.child('roles').child(auth.uid).child('personal').val() === true || root.child('roles').child(auth.uid).child('admin').val() === true)",
       "$uid": {
-        ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && root.child('roles').child(auth.uid).child('personal').val() === true && auth.uid === $uid && newData.exists()",
+        ".read": "auth != null && (auth.uid === $uid || root.child('roles').child(auth.uid).child('admin').val() === true)",
+        ".write": "auth != null && (root.child('roles').child(auth.uid).child('admin').val() === true || (root.child('roles').child(auth.uid).child('personal').val() === true && auth.uid === $uid && newData.exists()))",
         ".validate": "newData.hasChildren(['nombre'])",
         "nombre": {
           ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 120"
@@ -190,11 +195,14 @@
         "telefono": {
           ".validate": "newData.isString() && newData.val().length <= 25"
         },
-        "direccion": {
-          ".validate": "newData.isString() && newData.val().length <= 300"
+        "especialidad": {
+          ".validate": "newData.isString() && newData.val().length <= 120"
+        },
+        "activo": {
+          ".validate": "newData.isBoolean()"
         },
         "$other": {
-          ".validate": false
+          ".validate": true
         }
       }
     }

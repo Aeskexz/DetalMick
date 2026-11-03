@@ -27,6 +27,8 @@ data class AccountState(
     val profile: PatientProfile? = null,
     val profileSaved: Boolean = false,
     val staff: Boolean = false,
+    val admin: Boolean = false,
+    val mustChangePassword: Boolean = false,
     val email: String = "",
     val portal: AccessPortal = AccessPortal.PATIENT
 )
@@ -62,14 +64,16 @@ class AccountViewModel : ViewModel() {
     fun navigate(screen: Screen) {
         if (current.busy) return
         if (repository.auth.currentUser == null && screen in listOf(Screen.HOME, Screen.PROFILE)) return
+        if (current.mustChangePassword && screen != Screen.PROFILE) return
         update(current.copy(screen = screen, message = "", error = false))
     }
 
     fun login(email: String, password: String) {
         if (current.busy) return
-        val address = if (current.portal == AccessPortal.DENTIST) DentistIdentity.email(email) else email.trim().takeIf(Validation::email)
+        val raw = email.trim()
+        val address = if (Validation.email(raw)) raw else DentistIdentity.email(raw)
         if (address == null || password.isEmpty()) {
-            fail(if (current.portal == AccessPortal.DENTIST) "Escribe tu usuario de dentista o correo autorizado y tu contraseña." else "Escribe un correo válido y tu contraseña."); return
+            fail("Escribe tu correo o usuario y tu contraseña."); return
         }
         val operation = start()
         repository.login(address, password).addOnCompleteListener {
@@ -80,7 +84,6 @@ class AccountViewModel : ViewModel() {
 
     fun register(name: String, email: String, password: String, confirmation: String) {
         if (current.busy) return
-        if (current.portal != AccessPortal.PATIENT) { fail("Las cuentas de dentistas las habilita la administración."); return }
         if (!Validation.name(name)) { fail("Escribe tu nombre (máximo 120 caracteres)."); return }
         if (!Validation.email(email.trim())) { fail("Escribe un correo electrónico válido."); return }
         if (DentistIdentity.isUsernameAccount(email.trim())) { fail("Usa tu correo personal para crear una cuenta de paciente."); return }
@@ -118,14 +121,23 @@ class AccountViewModel : ViewModel() {
                 rejectAccess("No pudimos verificar los permisos de tu cuenta. Revisa tu conexión e intenta de nuevo.")
                 return@roleComplete
             }
-            val staff = role.result.value == true
-            val portal = if (staff) AccessPortal.DENTIST else AccessPortal.PATIENT
-            if (!restore && portal != current.portal) {
-                rejectAccess(if (staff) "Esta cuenta pertenece a un dentista. Entra desde Dentistas." else "Esta cuenta es de paciente. Entra desde Pacientes.")
+            if (role.result.child("activo").value == false) {
+                rejectAccess("Esta cuenta ha sido deshabilitada por la administración. Comunícate con la clínica.")
                 return@roleComplete
             }
-            update(current.copy(staff = staff, portal = portal, email = user.email.orEmpty(), screen = Screen.HOME))
-            readAuthorizedProfile(user.uid, operation, staff)
+            val isStaff = role.result.child("personal").value == true || role.result.value == true
+            val isAdmin = role.result.child("admin").value == true
+            val mustChangePassword = isStaff && role.result.child("primerIngreso").value == true
+            val portal = when {
+                isAdmin -> AccessPortal.ADMIN
+                isStaff -> AccessPortal.DENTIST
+                else -> AccessPortal.PATIENT
+            }
+            update(current.copy(staff = isStaff || isAdmin, admin = isAdmin,
+                mustChangePassword = mustChangePassword, portal = portal, email = user.email.orEmpty(),
+                screen = if (mustChangePassword) Screen.PROFILE else Screen.HOME,
+                message = if (mustChangePassword) "Cambia tu contraseña temporal para continuar." else ""))
+            readAuthorizedProfile(user.uid, operation, isStaff || isAdmin)
         }
     }
 
@@ -148,42 +160,82 @@ class AccountViewModel : ViewModel() {
                     return@addOnCompleteListener
                 }
                 val fallback = if (staff) PatientProfile(repository.auth.currentUser?.email?.substringBefore('@').orEmpty()) else PatientProfile()
-                update(current.copy(busy = false, screen = if (profile == null && !staff) Screen.PROFILE else Screen.HOME,
-                    profile = profile ?: fallback, profileSaved = profile != null,
-                    message = if (profile == null && staff) "Puedes completar tu perfil de dentista desde Editar mis datos."
-                        else if (profile == null) "Completa tu nombre para terminar el registro." else ""))
+                val needsProfile = profile == null || profile.nombre.isBlank() || (staff && (profile.nombre == "Dr/Dra. Invitado" || profile.especialidad.isBlank()))
+                val mustChangePassword = current.mustChangePassword
+                update(current.copy(busy = false,
+                    screen = if (needsProfile || mustChangePassword) Screen.PROFILE else Screen.HOME,
+                    profile = profile ?: fallback, profileSaved = profile != null && !needsProfile,
+                    message = when {
+                        mustChangePassword -> "Cambia tu contraseña temporal para continuar."
+                        needsProfile && staff -> "¡Bienvenido! Completa tus datos y tu especialidad para activar tu cuenta."
+                        needsProfile -> "Completa tu nombre para terminar el registro."
+                        else -> ""
+                    }))
             } else {
                 fail("No pudimos cargar tu perfil. Revisa tu conexión e intenta de nuevo. Si continúa, verifica los permisos de la base de datos.")
             }
         }
     }
 
-    fun save(name: String, phone: String, address: String) {
+    fun save(name: String, phone: String, address: String, especialidad: String = "", newPassword: String = "") {
         if (current.busy) return
         if (!Validation.name(name)) { fail("Escribe tu nombre (máximo 120 caracteres)."); return }
         if (!Validation.phone(phone.trim())) { fail("Escribe un teléfono de 8 a 15 dígitos, o deja el campo vacío."); return }
         if (!Validation.address(address.trim())) { fail("La dirección admite hasta 300 caracteres."); return }
-        val uid = repository.auth.currentUser?.uid ?: return
-        val profile = PatientProfile(name.trim(), phone.trim(), address.trim())
-        val operation = start()
-        repository.save(uid, profile, current.staff).addOnCompleteListener {
-            if (operation != generation) return@addOnCompleteListener
-            if (it.isSuccessful) update(current.copy(busy = false, screen = Screen.HOME,
-                profile = profile, profileSaved = true, error = false, message = "Tus datos se guardaron correctamente."))
-            else fail(if (it.exception is TimeoutException)
-                "Aún no se confirmó el guardado. Al recuperar conexión podría completarse; consulta tu perfil antes de reintentarlo."
-                else "No se pudieron guardar tus datos. Revisa tu conexión y los permisos e intenta de nuevo.")
+        if (current.staff && especialidad.trim().length > 120) { fail("La especialidad admite hasta 120 caracteres."); return }
+        if (current.mustChangePassword && newPassword.isBlank()) {
+            fail("Debes establecer una contraseña nueva para continuar."); return
         }
+        if (newPassword.isNotBlank() && !Validation.password(newPassword)) { fail("La nueva contraseña debe tener entre 8 y 128 caracteres."); return }
+
+        val user = repository.auth.currentUser ?: return
+        val uid = user.uid
+        val profile = PatientProfile(name.trim(), phone.trim(), address.trim(), especialidad.trim())
+        val operation = start()
+        val mustChangePassword = current.mustChangePassword
+
+        fun saveProfile() {
+            repository.save(uid, profile, current.staff).addOnCompleteListener profileComplete@ { saved ->
+                if (operation != generation) return@profileComplete
+                if (!saved.isSuccessful) {
+                    fail(if (saved.exception is TimeoutException)
+                        "No se confirmó el guardado del perfil. Revisa la conexión e intenta de nuevo."
+                        else "No se pudo guardar el perfil. Verifica los permisos de la base de datos e intenta de nuevo.")
+                    return@profileComplete
+                }
+                if (!mustChangePassword) {
+                    update(current.copy(busy = false, screen = Screen.HOME, profile = profile,
+                        profileSaved = true, error = false, message = "Tus datos se guardaron correctamente."))
+                    return@profileComplete
+                }
+                repository.completeFirstLogin(uid).addOnCompleteListener roleComplete@ { completed ->
+                    if (operation != generation) return@roleComplete
+                    if (completed.isSuccessful) update(current.copy(busy = false, screen = Screen.HOME,
+                        mustChangePassword = false, profile = profile, profileSaved = true,
+                        error = false, message = "Contraseña y perfil actualizados. Ya puedes continuar."))
+                    else fail("Se guardaron tus datos, pero no se pudo confirmar el cambio obligatorio. Verifica las reglas de Firebase e intenta guardar de nuevo.")
+                }
+            }
+        }
+
+        if (newPassword.isNotBlank()) {
+            user.updatePassword(newPassword).addOnCompleteListener passwordComplete@ { changed ->
+                if (operation != generation) return@passwordComplete
+                if (changed.isSuccessful) saveProfile()
+                else fail("No se pudo cambiar la contraseña. Debe tener entre 8 y 128 caracteres; vuelve a iniciar sesión si expiró la sesión.")
+            }
+        } else saveProfile()
     }
 
     fun reset(email: String) {
         if (current.busy) return
-        if (DentistIdentity.isUsernameAccount(email.trim()) || (current.portal == AccessPortal.DENTIST && !Validation.email(email.trim()))) {
+        val raw = email.trim()
+        if (DentistIdentity.isUsernameAccount(raw)) {
             fail("Para recuperar una cuenta de dentista con nombre de usuario, comunícate con la administración."); return
         }
-        if (!Validation.email(email.trim())) { fail("Escribe un correo electrónico válido."); return }
+        if (!Validation.email(raw)) { fail("Escribe un correo electrónico válido."); return }
         val operation = start()
-        repository.reset(email.trim()).addOnCompleteListener {
+        repository.reset(raw).addOnCompleteListener {
             if (operation != generation) return@addOnCompleteListener
             if (it.isSuccessful) update(current.copy(busy = false, error = false,
                 message = "Si existe una cuenta con ese correo, recibirás instrucciones. Revisa también la carpeta de spam."))

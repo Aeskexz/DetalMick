@@ -54,7 +54,7 @@ class MainActivity : AppCompatActivity() {
                 if (state.busy) return
                 when (state.screen) {
                     Screen.REGISTER, Screen.RESET -> leaveAuth(Screen.LOGIN)
-                    Screen.PROFILE -> if (!state.profileSaved) confirmLogout() else leaveProfile()
+                    Screen.PROFILE -> if (state.mustChangePassword || !state.profileSaved) confirmLogout() else leaveProfile()
                     else -> finish()
                 }
             }
@@ -97,19 +97,29 @@ class MainActivity : AppCompatActivity() {
             else getString(R.string.greeting, name.substringBefore(' '))
             it.fullName.text = name.ifBlank { "Tu perfil" }
             it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario: ${state.email.substringBefore('@')}" else state.email
-            it.role.setText(if (state.staff) R.string.staff_account else R.string.patient_account)
+            it.role.text = when {
+                state.admin -> "Cuenta de administrador"
+                state.staff -> getString(R.string.staff_account)
+                else -> getString(R.string.patient_account)
+            }
             it.edit.isEnabled = !state.busy && state.profile != null
             it.retry.isVisible = state.error || state.profile == null
             it.logout.isEnabled = true
             it.treatments.isEnabled = !state.busy && (state.profileSaved || state.staff)
             it.payments.isEnabled = !state.busy && (state.profileSaved || state.staff)
             it.citas.isEnabled = !state.busy && (state.profileSaved || state.staff)
+            it.adminPanel.isVisible = state.admin
 
             it.treatments.text = if (state.staff) "Gestionar tratamientos" else "Mis tratamientos"
             it.payments.text = if (state.staff) "Gestionar pagos" else "Mis pagos"
             it.citas.text = if (state.staff) "Gestionar agenda de citas" else "Mis citas y agendar"
         }
-        profileForm?.let { it.logout.isEnabled = true; it.back.isVisible = state.profileSaved }
+        profileForm?.let {
+            it.logout.isEnabled = true
+            it.back.isVisible = state.profileSaved && !state.mustChangePassword
+            it.changePasswordLayout.hint = if (state.mustChangePassword) "Nueva contraseña obligatoria" else "Nueva contraseña (opcional)"
+            if (state.mustChangePassword) it.save.text = "Cambiar contraseña y continuar"
+        }
     }
 
     private fun showAuth(screen: Screen) {
@@ -117,23 +127,16 @@ class MainActivity : AppCompatActivity() {
         authForm = form
         val register = screen == Screen.REGISTER
         val reset = screen == Screen.RESET
-        val dentist = model.state.value?.portal == AccessPortal.DENTIST
-        form.portalGroup.isVisible = screen == Screen.LOGIN
-        form.portalGroup.check(if (dentist) R.id.dentistPortal else R.id.patientPortal)
-        form.portalGroup.addOnButtonCheckedListener { _, id, checked ->
-            if (checked) { emailDraft = ""; model.selectPortal(if (id == R.id.dentistPortal) AccessPortal.DENTIST else AccessPortal.PATIENT) }
-        }
+        form.portalGroup.isVisible = false
         form.title.setText(when (screen) { Screen.REGISTER -> R.string.register_title; Screen.RESET -> R.string.reset_title; else -> R.string.login_title })
         ViewCompat.setAccessibilityHeading(form.title, true)
-        form.description.setText(when (screen) { Screen.REGISTER -> R.string.register_description; Screen.RESET -> R.string.reset_description; else -> R.string.login_description })
-        if (dentist && screen == Screen.LOGIN) {
-            form.title.text = "Acceso de dentistas"
-            form.description.text = "Entra con tu usuario o correo autorizado para gestionar tratamientos, pagos y citas."
-            form.emailLayout.hint = "Usuario o correo de dentista"
-            form.email.inputType = android.text.InputType.TYPE_CLASS_TEXT
-        } else if (screen == Screen.LOGIN) {
-            form.description.text = "Acceso exclusivo para pacientes. Consulta tus tratamientos, pagos y citas."
-        }
+        form.description.setText(when (screen) {
+            Screen.REGISTER -> R.string.register_description
+            Screen.RESET -> R.string.reset_description
+            else -> R.string.login_description
+        })
+        form.emailLayout.hint = if (screen == Screen.LOGIN) "Correo electrónico o usuario" else getString(R.string.email)
+        form.email.inputType = android.text.InputType.TYPE_CLASS_TEXT
         form.nameLayout.isVisible = register
         form.confirmationLayout.isVisible = register
         form.passwordHelp.isVisible = register
@@ -142,7 +145,7 @@ class MainActivity : AppCompatActivity() {
         form.email.setText(emailDraft)
         form.submit.setText(when (screen) { Screen.REGISTER -> R.string.register; Screen.RESET -> R.string.reset; else -> R.string.login })
         form.secondary.setText(if (screen == Screen.LOGIN) R.string.register else R.string.back_login)
-        form.secondary.isVisible = !dentist || screen != Screen.LOGIN
+        form.secondary.isVisible = true
         form.submit.setOnClickListener {
             when (screen) {
                 Screen.REGISTER -> model.register(form.name.text.toString(), form.email.text.toString(), form.password.text.toString(), form.confirmation.text.toString())
@@ -163,7 +166,14 @@ class MainActivity : AppCompatActivity() {
             it.treatments.setOnClickListener { openClinical("tratamientos") }
             it.payments.setOnClickListener { openClinical("pagos") }
             it.citas.setOnClickListener { openCitas() }
+            it.adminPanel.setOnClickListener { openAdmin() }
         }
+    }
+
+    private fun openAdmin() {
+        val state = model.state.value ?: return
+        if (!state.admin) return
+        startActivity(Intent(this, AdminActivity::class.java))
     }
 
     private fun openCitas() {
@@ -187,9 +197,22 @@ class MainActivity : AppCompatActivity() {
             it.name.setText(state.profile?.nombre.orEmpty())
             it.phone.setText(state.profile?.telefono.orEmpty())
             it.address.setText(state.profile?.direccion.orEmpty())
+            it.especialidad.setText(state.profile?.especialidad.orEmpty())
+            it.especialidadLayout.isVisible = state.staff
+            it.changePasswordLayout.hint = if (state.mustChangePassword) "Nueva contraseña obligatoria" else "Nueva contraseña (opcional)"
+            if (state.mustChangePassword) it.save.text = "Cambiar contraseña y continuar"
+
             it.email.text = if (DentistIdentity.isUsernameAccount(state.email)) "Usuario de acceso: ${state.email.substringBefore('@')}"
             else getString(R.string.account_email, state.email)
-            it.save.setOnClickListener { _ -> model.save(it.name.text.toString(), it.phone.text.toString(), it.address.text.toString()) }
+            it.save.setOnClickListener { _ ->
+                model.save(
+                    name = it.name.text.toString(),
+                    phone = it.phone.text.toString(),
+                    address = it.address.text.toString(),
+                    especialidad = it.especialidad.text.toString(),
+                    newPassword = it.changePassword.text.toString()
+                )
+            }
             it.back.setOnClickListener { leaveProfile() }
             it.logout.setOnClickListener { confirmLogout() }
         }
