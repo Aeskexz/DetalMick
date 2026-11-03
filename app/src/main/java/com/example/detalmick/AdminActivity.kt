@@ -163,7 +163,7 @@ class AdminActivity : AccessibleActivity() {
                 repository.deleteDentist(dentist.uid) { success, error ->
                     binding.progressBar.isVisible = false
                     if (success) Snackbar.make(binding.root, "Acceso retirado. Se conserva el historial.", Snackbar.LENGTH_LONG).show()
-                    else Snackbar.make(binding.root, "No se pudo eliminar: ${error ?: "Error desconocido"}", Snackbar.LENGTH_LONG).show()
+                    else Snackbar.make(binding.root, "No se pudo retirar el acceso: ${error ?: "Error desconocido"}", Snackbar.LENGTH_LONG).show()
                 }
             }.show()
     }

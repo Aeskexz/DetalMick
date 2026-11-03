@@ -24,7 +24,7 @@
   <string name="phone">Teléfono (opcional)</string>
   <string name="address">Dirección (opcional)</string>
   <string name="save">Guardar cambios</string>
-  <string name="delete_dentist_account">Eliminar cuenta</string>
+  <string name="delete_dentist_account">Retirar acceso</string>
   <string name="back_home">Volver al inicio</string>
   <string name="profile">Editar mis datos</string>
   <string name="logout">Cerrar sesión</string>
